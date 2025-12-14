@@ -4,18 +4,52 @@
   <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/Strombyte.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/src/pages/register.ts"></script>
     <title>Registrazione</title>
-    <link rel="stylesheet" href="./src/style.css" type="text/css">
+    <link rel="stylesheet" href="./src/styles/register.css" type="text/css">
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div id="login-box">
-    <h2>Registrazione</h2>
-    <input type="text" id="new-username" placeholder="Username" />
-    <input type="password" id="new-password" placeholder="Password" />
-    <button id="login-btn">Registrati</button>
+  <div id="register-box">
+        <h2>Registrazione</h2>
+        <input type="text" id="new-username" placeholder="Username" />
+        <input type="password" id="new-password" placeholder="Password" />
+        <div class="flex flex-wrap justify-center space-x-4 mt-6 mb-4" > 
+          <div id="SelectedCavaliere" class="bg-transparent border rounded-lg p-2 mb-4 
+                      flex flex-col items-center justify-start 
+                      w-full sm:w-1/2 md:w-1/4 lg:w-1/4 max-w-[150px]">
+              
+              <img class="w-full h-auto max-h-[128px]" src="/assets/Cavaliere.png" alt="Cavaliere Blu"/>
+              
+              <span class="block font-semibold text-xl text-white mt-2">Cavaliere</span>
+          </div>
+          
+          <div id="SelectedMago" class="bg-transparent border rounded-lg p-2 mb-4 
+                      flex flex-col items-center justify-start 
+                      w-full sm:w-1/2 md:w-1/4 lg:w-1/4 max-w-[150px]">
+              
+              <img class="w-full h-auto max-h-[128px]" src="/assets/Mago.png" alt="Mago Rosso"/>
+              <span class="block font-semibold text-xl text-white mt-2">Mago</span>
+          </div>
+          
+          <div id="SelectedArciere" class="bg-transparent border rounded-lg p-2 mb-4 
+                      flex flex-col items-center justify-start 
+                      w-full sm:w-1/2 md:w-1/4 lg:w-1/4 max-w-[150px]">
+              
+              <img class="w-full h-auto max-h-[128px]" src="/assets/Aricere.png" alt="Arciere Verde"/>
+              <span class="block font-semibold text-xl text-white mt-2">Arciere</span>
+          </div>
+          
+          <div id="SelectedLadro" class="bg-transparent border rounded-lg p-2 mb-4 
+                      flex flex-col items-center justify-start 
+                      w-full sm:w-1/2 md:w-1/4 lg:w-1/4 max-w-[150px]">
+              
+              <img class="w-full h-auto max-h-[128px]" src="/assets/Ladro.png" alt="Ladro Nero"/>
+              <span class="block font-semibold text-xl text-white mt-2">Ladro</span>
+          </div> 
+        </div>
+        <button id="register-btn">Registrati</button>
   </div>
-
-  <script src="./src/register.js"></script>
 </body>
 </html>

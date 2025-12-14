@@ -13,15 +13,16 @@ loginBtn.addEventListener("click", () => {
   }
 
   console.log(`Login effettuato da ${username}`);
-  window.location.href = "index.html";
+  window.location.href = "homepage.html";
 });
 
 registerLink.addEventListener("click", () => {
   window.location.href = "register.html";
 });
 
+
 import Phaser from "phaser";
-import { Torch } from "./scenes/torch";
+import { Torch } from "../scenes/torch";
 
 const config = {
   type: Phaser.AUTO,

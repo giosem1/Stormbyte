@@ -1,6 +1,7 @@
 const registerBtn = document.getElementById("register-btn") as HTMLButtonElement;
 const newUsername = document.getElementById("new-username") as HTMLInputElement;
 const newPassword = document.getElementById("new-password") as HTMLInputElement;
+const cavaliereDiv = document.getElementById("SelectedCavaliere") as HTMLDivElement;
 
 registerBtn.addEventListener("click", () => {
   const username = newUsername.value.trim();
@@ -16,16 +17,18 @@ registerBtn.addEventListener("click", () => {
   window.location.href = "login.html";
 });
 
+cavaliereDiv.addEventListener("click", () => {
+  alert("Cavaliere selezionato!");
+});
 import Phaser from "phaser";
-import { Torch } from "./scenes/torch";
+import { KnightAttack } from "../scenes/knightattack";
 
 const config = {
   type: Phaser.AUTO,
-  width: window.innerWidth,
-  height: window.innerHeight,
-  transparent: true,
-  scene: Torch,
-  backgroundColor: "rgba(0,0,0,0)"
+  width:800,
+  height:600,
+  scene: [KnightAttack],
+  backgroundColor: "rgba(255, 255, 255, 0)"
 };
 
 new Phaser.Game(config);

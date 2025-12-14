@@ -11,8 +11,8 @@ export class Torch extends Phaser.Scene
     preload ()
     {
         this.load.spritesheet("sheet", "/assets/torch.png", {
-            frameWidth: 110,
-            frameHeight: 250
+            frameWidth: 106,
+            frameHeight: 277
         });
     }
 

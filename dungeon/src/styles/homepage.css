@@ -1,0 +1,29 @@
+body {
+  margin: 0;
+  min-height: 100vh;
+
+  background-repeat: no-repeat, no-repeat;
+  background-position: center, center;
+  background-size: contain, cover;
+  overflow: hidden;
+
+  background-image:
+    url("../../public/homepagescenes/homescene1.png"),
+    url("../../public/dungeon-wall.png");
+
+  animation: bg-cycle 36s infinite linear;
+}
+
+@keyframes bg-cycle {
+  0%   { background-image: url("../../public/homepagescenes/homescene1.png"), url("../../public/dungeon-wall.png");}
+  10%  { background-image: url("../../public/homepagescenes/homescene2.png"), url("../../public/dungeon-wall.png"); }
+  20%  { background-image: url("../../public/homepagescenes/homescene3.png"), url("../../public/dungeon-wall.png"); }
+  30%  { background-image: url("../../public/homepagescenes/homescene4.png"), url("../../public/dungeon-wall.png"); }
+  40%  { background-image: url("../../public/homepagescenes/homescene5.png"), url("../../public/dungeon-wall.png"); }
+  50%  { background-image: url("../../public/homepagescenes/homescene6.png"), url("../../public/dungeon-wall.png"); }
+  60%  { background-image: url("../../public/homepagescenes/homescene5.png"), url("../../public/dungeon-wall.png"); }
+  70%  { background-image: url("../../public/homepagescenes/homescene4.png"), url("../../public/dungeon-wall.png");}
+  80%  { background-image: url("../../public/homepagescenes/homescene3.png"), url("../../public/dungeon-wall.png"); }
+  90%  { background-image: url("../../public/homepagescenes/homescene2.png"), url("../../public/dungeon-wall.png"); }
+  100% { background-image: url("../../public/homepagescenes/homescene1.png"), url("../../public/dungeon-wall.png"); }
+}

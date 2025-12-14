@@ -1,26 +1,27 @@
-export class Knight extends Phaser.Scene
+import Phaser from "phaser";
+export class KnightAttack extends Phaser.Scene
 {
     private knight!: Phaser.GameObjects.Sprite;
 
     constructor ()
     {
-        super("Knight");
+        super("KnightAttack");
     }
 
     preload ()
     {
-        this.load.spritesheet("kng", "/assets/KngWlak.png", {
-            frameWidth: 81,
-            frameHeight: 130
+        this.load.spritesheet("kng", "/assets/Knight_attack.png", {
+            frameWidth: 155,
+            frameHeight: 158
         });
     }
-
+    
     create ()
     {
         this.anims.create({
             key: "walk",
-            frames: this.anims.generateFrameNumbers("kng", { start: 0, end:17 }),
-            frameRate: 9,
+            frames: this.anims.generateFrameNumbers("kng", { start: 0, end: 5}),
+            frameRate: 3,
             repeat: -1
         });
 
