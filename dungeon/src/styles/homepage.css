@@ -1,29 +1,121 @@
-body {
-  margin: 0;
-  min-height: 100vh;
-
-  background-repeat: no-repeat, no-repeat;
-  background-position: center, center;
-  background-size: contain, cover;
-  overflow: hidden;
-
-  background-image:
-    url("../../public/homepagescenes/homescene1.png"),
-    url("../../public/dungeon-wall.png");
-
-  animation: bg-cycle 36s infinite linear;
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
-@keyframes bg-cycle {
-  0%   { background-image: url("../../public/homepagescenes/homescene1.png"), url("../../public/dungeon-wall.png");}
-  10%  { background-image: url("../../public/homepagescenes/homescene2.png"), url("../../public/dungeon-wall.png"); }
-  20%  { background-image: url("../../public/homepagescenes/homescene3.png"), url("../../public/dungeon-wall.png"); }
-  30%  { background-image: url("../../public/homepagescenes/homescene4.png"), url("../../public/dungeon-wall.png"); }
-  40%  { background-image: url("../../public/homepagescenes/homescene5.png"), url("../../public/dungeon-wall.png"); }
-  50%  { background-image: url("../../public/homepagescenes/homescene6.png"), url("../../public/dungeon-wall.png"); }
-  60%  { background-image: url("../../public/homepagescenes/homescene5.png"), url("../../public/dungeon-wall.png"); }
-  70%  { background-image: url("../../public/homepagescenes/homescene4.png"), url("../../public/dungeon-wall.png");}
-  80%  { background-image: url("../../public/homepagescenes/homescene3.png"), url("../../public/dungeon-wall.png"); }
-  90%  { background-image: url("../../public/homepagescenes/homescene2.png"), url("../../public/dungeon-wall.png"); }
-  100% { background-image: url("../../public/homepagescenes/homescene1.png"), url("../../public/dungeon-wall.png"); }
+body {
+    display: flex;
+    flex-direction: column; 
+    align-items: flex-start; 
+    justify-content: flex-start; 
+
+    min-height: 100vh;
+    width: 100vw;
+    background-color: #000000;
+    overflow: hidden;
+
+    font-family: 'Press Start 2P', cursive;
+
+    background-repeat: no-repeat, no-repeat;
+    background-position: center center, center center;
+    background-size: cover, cover; 
+    background-attachment: fixed;
+
+    background-image:
+        url("../../public/homepagescenes/homescene1.png");
+
+    animation: bg-cycle 36s infinite linear;
+    padding-left: 50px; 
+}
+
+#Menu {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    left: 50px; 
+    width: auto;
+}
+
+/* @keyframes bg-cycle {
+    0%   { background-image: url("../../public/homepagescenes/homescene1.png");}
+    10%  { background-image: url("../../public/homepagescenes/homescene2.png"); }
+    20%  { background-image: url("../../public/homepagescenes/homescene3.png"); }
+    30%  { background-image: url("../../public/homepagescenes/homescene4.png"), url("../../public/homepagescenes/homepageprova3.png"); }
+    40%  { background-image: url("../../public/homepagescenes/homescene5.png"), url("../../public/homepagescenes/homepageprova3.png"); }
+    50%  { background-image: url("../../public/homepagescenes/homescene6.png"), url("../../public/homepagescenes/homepageprova3.png"); }
+    60%  { background-image: url("../../public/homepagescenes/homescene5.png"), url("../../public/homepagescenes/homepageprova3.png"); }
+    70%  { background-image: url("../../public/homepagescenes/homescene4.png"), url("../../public/homepagescenes/homepageprova3.png");}
+    80%  { background-image: url("../../public/homepagescenes/homescene3.png"), url("../../public/homepagescenes/homepageprova3.png"); }
+    90%  { background-image: url("../../public/homepagescenes/homescene2.png"), url("../../public/homepagescenes/homepageprova3.png"); }
+    100% { background-image: url("../../public/homepagescenes/homescene1.png"), url("../../public/homepagescenes/homepageprova3.png"); }
+} */
+
+h1 {
+    width: 100%; /* Occupa tutta la larghezza per poter centrare il testo */
+    text-align: center; 
+    color: #ffffff;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    margin-bottom: 20px;
+    padding-top: 50px; /* Aggiunge spazio in alto per staccare H1 dal bordo */
+}
+
+#Menu h2 {
+    color: #ffffff;
+    text-align: left;
+    font-size: 2.1rem;
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+#Menu p {
+    color: #ffffff;
+    text-align: left; 
+    margin-bottom: 15px;
+    font-size: 1.8rem;
+    cursor: pointer;
+    transition: color 0.2s, transform 0.2s;
+}
+
+#Menu p:hover {
+    color: #ffcc00;
+    transform: translateX(5px) scale(1.05);
+}
+
+.search-wrapper.small {
+  position: relative;
+  display: inline-block;
+  width: 160px;
+  margin-left: 10px;
+}
+
+.search-wrapper.small input[type="text"] {
+  width: 100%;
+  padding: 8px 35px 8px 10px;
+  background: #2a2a2a;
+  border: 2px solid #555;
+  border-radius: 5px;
+  color: #e0e0e0;
+  font-size: 0.9em;
+  outline: none;
+}
+
+.search-wrapper.small input[type="text"]::placeholder {
+  color: #888;
+}
+
+.search-wrapper.small input[type="text"]:focus {
+  border-color: #ffd700;
+  box-shadow: 0 0 6px rgba(255, 215, 0, 0.4);
+}
+
+.search-wrapper.small .icon {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  user-select: none;
 }

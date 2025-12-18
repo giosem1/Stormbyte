@@ -1,5 +1,5 @@
 body {
-    background-image: url('../public/dungeon-wall.png');
+    background-image: url('../../public/dungeon-wall.png');
     display: flex;
     justify-content: center;
     align-items: center;

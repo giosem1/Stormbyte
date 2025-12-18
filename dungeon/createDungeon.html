@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/Strombyte.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Create Dungeon</title>
+    <link rel="stylesheet" href="./src/styles/createdungeon.css" type="text/css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div class="fixed bottom-0 left-0 w-full bg-black/60 backdrop-blur-md text-white font-sans p-4 border-t border-white/10">
+  
+  <div class="flex items-center justify-center space-x-6 border-b border-white/20 pb-2 mb-3">
+    <button class="px-3 py-1 text-sm font-medium hover:text-yellow-400 transition">Room</button>
+    <button class="px-3 py-1 text-sm font-medium hover:text-yellow-400 transition">Enemis</button>
+    <button class="px-3 py-1 text-sm font-medium text-yellow-400 border-b-2 border-yellow-400">Traps</button>
+  </div>
+
+  <div class="flex items-center space-x-8 px-10 mb-4">
+    <div class="flex flex-col items-center opacity-50 hover:opacity-100 cursor-pointer">
+      <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center mb-1">1</div>
+    </div>
+    <div class="flex flex-col items-center opacity-50 hover:opacity-100 cursor-pointer">
+      <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center mb-1">2</div>
+    </div>
+    <div class="flex flex-col items-center cursor-pointer">
+      <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center mb-1 text-black shadow-lg shadow-white/20">3</div>
+      <div class="w-1.5 h-1.5 bg-yellow-400 rounded-full"></div>
+    </div>
+  </div>
+
+  <div class="flex items-end px-4 space-x-4">
+    <div class="relative w-28 h-28 bg-gradient-to-b from-slate-700 to-slate-900 rounded-lg border-2 border-yellow-400 overflow-hidden group cursor-pointer shadow-xl">
+      <div class="absolute top-0 right-0 bg-yellow-500 text-[10px] px-2 py-0.5 font-bold text-black uppercase">New</div>
+      <div class="w-full h-full flex items-center justify-center text-4xl">1</div>
+      <div class="absolute bottom-0 left-0 w-full bg-black/40 text-[10px] p-1 flex justify-between items-center">
+        <span>10</span>
+        <span>x3</span>
+      </div>
+    </div>
+    
+    <div class="w-24 h-24 bg-slate-800/80 rounded-lg border border-white/10 flex items-center justify-center opacity-60 hover:opacity-100 transition cursor-pointer">
+      <div class="text-3xl">2</div>
+    </div>
+  </div>
+
+  <div class="absolute right-8 bottom-24 flex flex-col space-y-2">
+    <button class="bg-white/10 hover:bg-white/20 px-6 py-2 rounded-full border border-white/20 flex items-center space-x-2 backdrop-blur-sm transition">
+      <span class="text-yellow-400 font-bold">□</span>
+      <span class="text-sm font-semibold uppercase tracking-wider">Place</span>
+    </button>
+    <button class="bg-white/10 hover:bg-white/20 px-6 py-2 rounded-full border border-white/20 flex items-center space-x-2 backdrop-blur-sm transition">
+      <span class="text-yellow-400 font-bold">○</span>
+      <span class="text-sm font-semibold uppercase tracking-wider">Leave</span>
+    </button>
+  </div>
+</div>
+    <script type="module" src=""></script>
+  </body>
+</html>

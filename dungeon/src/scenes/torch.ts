@@ -2,12 +2,16 @@ export class Torch extends Phaser.Scene
 {
     private torchLeft!: Phaser.GameObjects.Sprite;
     private torchRight!: Phaser.GameObjects.Sprite;
+    private page!: string;
 
     constructor () 
     {
         super("Torch");
     }
-
+    init() {
+        const path = window.location.pathname;
+        this.page = path.substring(path.lastIndexOf("/") + 1);
+    }
     preload ()
     {
         this.load.spritesheet("sheet", "/assets/torch.png", {
@@ -25,18 +29,23 @@ export class Torch extends Phaser.Scene
         repeat: -1
     });
 
-    const centerX = window.innerWidth / 2;
-    const boxHalfWidth = 175; 
-    const gap = 80; 
-    const y = window.innerHeight / 2; 
- 
-    this.torchLeft = this.add.sprite(centerX - boxHalfWidth - gap, y, "sheet");
-    this.torchLeft.play("light", true);
-    this.torchLeft.setBlendMode(Phaser.BlendModes.SCREEN);
 
-    this.torchRight = this.add.sprite(centerX + boxHalfWidth + gap, y, "sheet");
-    this.torchRight.play("light", true);
-    this.torchRight.setBlendMode(Phaser.BlendModes.SCREEN);
+        const positions: Record<string, { boxHalfWidth: number; gap: number, centerX: number, y: number }> = {
+            "login.html": { boxHalfWidth: 190, gap: 90, centerX: this.scale.width / 2, y: this.scale.height / 2},
+            "homepage.html": { boxHalfWidth: 220, gap: 90, centerX: this.scale.width / 1.45 , y: this.scale.height / 4.7}
+        };
+
+        const { boxHalfWidth, gap, centerX, y} =
+            positions[this.page] ?? { boxHalfWidth: 175, gap: 80, centerX: this.scale.width / 2, y: this.scale.height / 2};
+
+        this.torchLeft = this.add.sprite(centerX - boxHalfWidth - gap, y, "sheet");
+        this.torchRight = this.add.sprite(centerX + boxHalfWidth + gap, y, "sheet");
+
+        this.torchLeft.play("light", true);
+        this.torchRight.play("light", true);
+
+        this.torchLeft.setBlendMode(Phaser.BlendModes.SCREEN);
+        this.torchRight.setBlendMode(Phaser.BlendModes.SCREEN);
 }
 
 }
