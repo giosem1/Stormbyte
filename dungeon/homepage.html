@@ -4,19 +4,40 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/Strombyte.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
     <title>Homepage</title>
     <link rel="stylesheet" href="./src/styles/homepage.css" type="text/css">
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   </head>
   <body>
-    <h1>Welcome To Stormbyte</h1>
+    <span id="user">
+      <div id="placeholder_frame">
+        <img id="placeholder" src="./public/placeholder.png"/>
+        <img id="frame" src="./public/Frame.png"/>
+      </div>
+      <p id="username">user</p>
+    </span>
+    
+    <h1 id="welcome">Welcome To Stormbyte</h1>
     <div id="Menu">
       <h2>MENU</h2>
       <p id="create">-> CREATE DUNGEON</p>
       <p id="search">-> SEARCH DUNGEON</p>
       <p id="chanllenge">-> CHANLLENGE DUNGEON</p>
       <p id="change">-> CHANGE CLASS</p>
+      <p id="exit">-> EXIT</p>
     </div>
+
+    <!-- Overlay -->
+    <div id="overlay" class="hidden"></div>
+
+    <!-- Generic Panel -->
+    <div id="generic-panel" class="hidden">
+      <div id="panel-content"></div>
+    </div>
+
+    
+    <p id="usercode">UID:012345679</p>
     <script type="module" src="/src/pages/main.ts"></script>
   </body>
 </html>

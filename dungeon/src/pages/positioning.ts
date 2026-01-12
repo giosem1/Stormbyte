@@ -1,42 +1,67 @@
-const draggables: NodeListOf<HTMLElement> = document.querySelectorAll(".draggable");
-const canvas: HTMLElement | null = document.getElementById("infinite-canvas");
+const canvas = document.getElementById("infinite-canvas") as HTMLDivElement;
+const menuImages = document.querySelectorAll<HTMLImageElement>(".menu-item");
 
-if (!canvas) throw new Error("Canvas non trovato");
+let draggingImage: HTMLImageElement | null = null;
+let offsetX = 0;
+let offsetY = 0;
 
-draggables.forEach(el => {
-  el.addEventListener("mousedown", (e: MouseEvent) => dragStart(e, el));
+
+function enableDrag(img: HTMLImageElement) {
+  img.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+
+    const rect = img.getBoundingClientRect();
+
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+
+    draggingImage = img;
+  });
+}
+
+
+menuImages.forEach(menuImg => {
+  menuImg.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+
+    const newImg = document.createElement("img");
+    newImg.src = menuImg.src;
+    newImg.classList.add("absolute", "select-none");
+    newImg.draggable = false;
+
+    const canvasRect = canvas.getBoundingClientRect();
+
+    const x = e.clientX - canvasRect.left;
+    const y = e.clientY - canvasRect.top;
+
+    newImg.style.left = `${x}px`;
+    newImg.style.top = `${y}px`;
+
+    canvas.appendChild(newImg);
+
+    enableDrag(newImg);
+
+    draggingImage = newImg;
+    offsetX = 0;
+    offsetY = 0;
+  });
 });
 
-function dragStart(e: MouseEvent, el: HTMLElement) {
-  e.preventDefault();
-  const rect = el.getBoundingClientRect();
-  const canvasRect = canvas!.getBoundingClientRect();
+window.addEventListener("mousemove", (e) => {
+  if (!draggingImage) return;
 
-  const offsetX = e.clientX - rect.left;
-  const offsetY = e.clientY - rect.top;
+  const canvasRect = canvas.getBoundingClientRect();
 
-  canvas!.appendChild(el);
-  el.style.position = "absolute";
-  el.style.zIndex = "1000";
+  const x = e.clientX - canvasRect.left - offsetX;
+  const y = e.clientY - canvasRect.top - offsetY;
 
-   function moveAt(pageX: number, pageY: number) {
-    const x = pageX - canvasRect.left + canvas!.scrollLeft - offsetX;
-    const y = pageY - canvasRect.top + canvas!.scrollTop - offsetY;
-    el.style.left = `${x}px`;
-    el.style.top = `${y}px`;
-  }
+  draggingImage.style.left = `${x}px`;
+  draggingImage.style.top = `${y}px`;
+});
 
-  moveAt(e.pageX, e.pageY);
 
-  function onMouseMove(event: MouseEvent) {
-    moveAt(event.pageX, event.pageY);
-  }
-
-  function onMouseUp() {
-    document.removeEventListener("mousemove", onMouseMove);
-    document.removeEventListener("mouseup", onMouseUp);
-  }
-
-  document.addEventListener("mousemove", onMouseMove);
-  document.addEventListener("mouseup", onMouseUp);
-}
+window.addEventListener("mouseup", () => {
+  draggingImage = null;
+});

@@ -26,7 +26,7 @@ window.addEventListener("load", () => {
 });
 
 viewport.addEventListener("mousedown", (e: MouseEvent) => {
-  if (e.button !== 1) return; 
+  if (e.button !== 2 ) return; 
   isDragging = true;
   startX = e.clientX;
   startY = e.clientY;

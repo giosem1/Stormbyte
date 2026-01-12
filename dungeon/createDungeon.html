@@ -12,7 +12,7 @@
 <body>
 
   <div id="viewport">
-    <div id="infinite-canvas">
+    <div id="infinite-canvas"  class="relative">
       <div class="room-wrapper">
         <img id="loginroom" class="room" src="public/loginroom.png"/>
       </div>
@@ -26,16 +26,16 @@
       <button class="px-3 py-1 text-sm font-medium text-yellow-400 border-b-2 border-yellow-400">Traps</button>
     </div>
 
-    <div class="flex gap-4 mt-4">
-      <div class="w-24 h-24 bg-slate-800/80 rounded-lg border border-white/10 flex items-center justify-center opacity-60 hover:opacity-100 transition cursor-pointer relative overflow-hidden group shadow-xl draggable">
-        <img src="public/loginroom.png" class="w-16 h-16 object-contain" />
+    <div class="flex gap-2">
+      <div class="w-24 h-24 bg-slate-800/80 rounded-lg border border-white/10 flex items-center justify-center cursor-pointer relative overflow-hidden shadow-xl">
+        <img src="public/loginroom.png" class="w-16 h-16 object-contain menu-item" draggable="false"/>
         <div class="absolute bottom-0 left-0 w-full flex justify-center bg-black/40 text-[10px] p-1">
           <span>x3</span>
         </div>
       </div>
 
-      <div class="w-24 h-24 bg-slate-800/80 rounded-lg border border-white/10 flex items-center justify-center opacity-60 hover:opacity-100 transition cursor-pointer relative overflow-hidden group shadow-xl draggable">
-        <img src="public/loginroom.png" class="w-16 h-16 object-contain" />
+      <div class="w-24 h-24 bg-slate-800/80 rounded-lg border border-white/10 flex items-center justify-center cursor-pointer relative overflow-hidden shadow-xl">
+        <img src="public/loginroom.png" class="w-16 h-16 object-contain menu-item" draggable="false"/>
         <div class="absolute bottom-0 left-0 w-full flex justify-center bg-black/40 text-[10px] p-1">
           <span>x3</span>
         </div>
@@ -44,12 +44,11 @@
   </div>
 
   <div id="chat-box"></div>
-  <div id="mini-map">
+  <!-- <div id="mini-map">
     <canvas id="mini-map-canvas"></canvas>
-  </div>
+  </div> -->
   <script type="module" src="./src/pages/state.ts"></script>
   <script type="module" src="./src/pages/movement.ts"></script>
-  <script type="module" src="./src/pages/minimap.ts"></script>
   <script type="module" src="./src/pages/positioning.ts"></script>
 
 </body>

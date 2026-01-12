@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { Torch } from "../scenes/torch";
+import GenericPanel from "../ui/pannel";
 
 const config = {
    type: Phaser.AUTO,
@@ -11,17 +12,101 @@ const config = {
 
  new Phaser.Game(config);
 
+const panel = new GenericPanel(
+  "generic-panel",
+  "panel-content",
+  "overlay"
+);
+
 const createD = document.getElementById("create") as HTMLParagraphElement;
 const changeC = document.getElementById("change") as HTMLParagraphElement;
 const searchD = document.getElementById("search") as HTMLParagraphElement;
-// const chanllengeD = document.getElementById("chanllenge") as HTMLParagraphElement;
+const chanllengeD = document.getElementById("chanllenge") as HTMLParagraphElement;
+const exitD = document.getElementById("exit") as HTMLParagraphElement;
 
 createD.addEventListener("click", ()=>{
   window.location.href = "createDungeon.html";
 })
 
+chanllengeD.addEventListener("click", ()=>{
+     panel.show(`
+    <h2 class="panel-title text-lg mb-6">Join Chamber</h2>
+
+    <input 
+      id="roomCode"
+      type="text"
+      placeholder="ENTER CODE"
+    />
+
+    <button id="confirmRoom" class="panel-btn">
+      CONFIRM
+    </button>
+
+    <button id="randomRoom" class="panel-btn">
+      RANDOM ROOM
+    </button>
+  `);
+
+  document.getElementById("confirmRoom")?.addEventListener("click", () => {
+    const code = (document.getElementById("roomCode") as HTMLInputElement).value;
+    console.log("Room code:", code);
+  });
+
+  document.getElementById("randomRoom")?.addEventListener("click", () => {
+    console.log("Random room");
+  });
+})
+
 changeC.addEventListener("click", ()=>{
-  window.location.href = "changeClass.html";
+   panel.show(`
+    <h2 class="panel-title text-lg mb-4">Select Class</h2>
+
+     <div class="flex flex-wrap justify-center space-x-4 mt-6 mb-4" > 
+          <div id="SelectedCavaliere" class="bg-transparent border rounded-lg p-2 mb-4 
+                      flex flex-col items-center justify-start 
+                      w-full sm:w-1/2 md:w-1/4 lg:w-1/4 max-w-[150px]">
+              
+              <img class="w-full h-auto max-h-[128px]" src="/assets/Cavaliere.png" alt="Cavaliere Blu"/>
+              
+              <span class="block font-semibold text-xl text-white mt-2">Knight</span>
+          </div>
+          
+          <div id="SelectedMago" class="bg-transparent border rounded-lg p-2 mb-4 
+                      flex flex-col items-center justify-start 
+                      w-full sm:w-1/2 md:w-1/4 lg:w-1/4 max-w-[150px]">
+              
+              <img class="w-full h-auto max-h-[128px]" src="/assets/Mago.png" alt="Mago Rosso"/>
+              <span class="block font-semibold text-xl text-white mt-2">Mage</span>
+          </div>
+          
+          <div id="SelectedArciere" class="bg-transparent border rounded-lg p-2 mb-4 
+                      flex flex-col items-center justify-start 
+                      w-full sm:w-1/2 md:w-1/4 lg:w-1/4 max-w-[150px]">
+              
+              <img class="w-full h-auto max-h-[128px]" src="/assets/Aricere.png" alt="Arciere Verde"/>
+              <span class="block font-semibold text-xl text-white mt-2">Arcer</span>
+          </div>
+          
+          <div id="SelectedLadro" class="bg-transparent border rounded-lg p-2 mb-4 
+                      flex flex-col items-center justify-start 
+                      w-full sm:w-1/2 md:w-1/4 lg:w-1/4 max-w-[150px]">
+              
+              <img class="w-full h-auto max-h-[128px]" src="/assets/Ladro.png" alt="Ladro Nero"/>
+              <span class="block font-semibold text-xl text-white mt-2">Thief</span>
+          </div> 
+        </div>
+
+    <button id="confirmClass" class="panel-btn">CONFIRM</button>
+    <button id="cancelClass" class="panel-btn">CANCEL</button>
+  `);
+
+  document.getElementById("cancelClass")?.addEventListener("click", () => {
+    panel.hide();
+  });
+})
+
+exitD.addEventListener("click", ()=>{
+  window.location.href = "login.html";
 })
 
 searchD.addEventListener("click", () => {
@@ -66,10 +151,7 @@ searchD.addEventListener("click", () => {
   wrapper.appendChild(input);
   wrapper.appendChild(icon);
 
-  // inserisce l’input DENTRO il paragrafo
   searchD.appendChild(wrapper);
 
   input.focus();
 });
-
-
