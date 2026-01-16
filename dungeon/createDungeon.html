@@ -10,46 +10,54 @@
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 <body>
-
+  <div id="commands">
+    <p id="back-arrow">&lt;-</p>
+    <p id="code-label">Codice:</p>
+    <p id="save">Save</p>
+  </div>
   <div id="viewport">
-    <div id="infinite-canvas"  class="relative">
-      <div class="room-wrapper">
-        <img id="loginroom" class="room" src="public/loginroom.png"/>
+    <div id="canvas-center">
+      <div id="infinite-canvas">
+        <div class="room-wrapper">
+          <img id="loginroom" class="room" src="public/assets/rooms/loginroom.png" />
+        </div>
       </div>
     </div>
   </div>
-  
+
   <div class="dungeon-menu fixed bottom-0 left-0 w-full bg-black/60 backdrop-blur-md text-white font-sans p-4 border-t border-white/10">
     <div class="flex items-center justify-center space-x-6 border-b border-white/20 pb-2 mb-3">
-      <button class="px-3 py-1 text-sm font-medium hover:text-yellow-400 transition">Rooms</button>
-      <button class="px-3 py-1 text-sm font-medium hover:text-yellow-400 transition">Enemis</button>
-      <button class="px-3 py-1 text-sm font-medium text-yellow-400 border-b-2 border-yellow-400">Traps</button>
+      <button id="rooms" class="menu-btn active">Rooms</button>
+      <button id="enemies" class="menu-btn">Enemis</button>
+      <button id="traps" class="menu-btn">Traps</button>
     </div>
 
-    <div class="flex gap-2">
-      <div class="w-24 h-24 bg-slate-800/80 rounded-lg border border-white/10 flex items-center justify-center cursor-pointer relative overflow-hidden shadow-xl">
-        <img src="public/loginroom.png" class="w-16 h-16 object-contain menu-item" draggable="false"/>
-        <div class="absolute bottom-0 left-0 w-full flex justify-center bg-black/40 text-[10px] p-1">
-          <span>x3</span>
-        </div>
-      </div>
-
-      <div class="w-24 h-24 bg-slate-800/80 rounded-lg border border-white/10 flex items-center justify-center cursor-pointer relative overflow-hidden shadow-xl">
-        <img src="public/loginroom.png" class="w-16 h-16 object-contain menu-item" draggable="false"/>
-        <div class="absolute bottom-0 left-0 w-full flex justify-center bg-black/40 text-[10px] p-1">
-          <span>x3</span>
-        </div>
-      </div>
-    </div>
+    <div id="itemsContainer" class="flex gap-2"></div>
   </div>
 
-  <div id="chat-box"></div>
-  <!-- <div id="mini-map">
-    <canvas id="mini-map-canvas"></canvas>
-  </div> -->
-  <script type="module" src="./src/pages/state.ts"></script>
-  <script type="module" src="./src/pages/movement.ts"></script>
-  <script type="module" src="./src/pages/positioning.ts"></script>
+  <div id="chat-box">
+    <div id="messages">
+      <p>User: Hello!</p>
+      <p>Bot: Hi there!</p>
+      <p>User: How are you?</p>
+      <p>Bot: I'm fine, thanks!</p>
+      <p>User: Hello!</p>
+      <p>Bot: Hi there!</p>
+      <p>User: How are you?</p>
+      <p>Bot: I'm fine, thanks!</p>
+    </div>
+
+    <div id="chat-input-wrapper">
+      <div class="input-container">
+        <input type="text" id="message" placeholder="Say something" />
+        <div id="send-btn"></div>
+      </div>
+    </div>
+  </div>  
+  <script type="module" src="./src/pages/createDun/state.ts"></script>
+  <script type="module" src="./src/pages/createDun/movement.ts"></script>
+  <script type="module" src="./src/pages/createDun/positioning.ts"></script>
+  <script type="module" src="./src/pages/createDun/createdungeon.ts"></script>
 
 </body>
 </html>
