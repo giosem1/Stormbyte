@@ -21,7 +21,7 @@ cavaliereDiv.addEventListener("click", () => {
   alert("Cavaliere selezionato!");
 });
 import Phaser from "phaser";
-import { KnightAttack } from "../scenes/knightattack";
+import { KnightAttack } from "../scenes/knight/knightattack";
 
 const config = {
   type: Phaser.AUTO,

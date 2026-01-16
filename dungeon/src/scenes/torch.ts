@@ -32,7 +32,7 @@ export class Torch extends Phaser.Scene
 
         const positions: Record<string, { boxHalfWidth: number; gap: number, centerX: number, y: number }> = {
             "login.html": { boxHalfWidth: 190, gap: 90, centerX: this.scale.width / 2, y: this.scale.height / 2},
-            "homepage.html": { boxHalfWidth: 220, gap: 90, centerX: this.scale.width / 1.45 , y: this.scale.height / 4.7}
+            "homepage.html": { boxHalfWidth: 290, gap: 90, centerX: this.scale.width / 1.45 , y: this.scale.height / 4.7}
         };
 
         const { boxHalfWidth, gap, centerX, y} =

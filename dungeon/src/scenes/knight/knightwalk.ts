@@ -26,7 +26,6 @@ export class Knight extends Phaser.Scene
 
         this.knight = this.add.sprite(400, 300, "kng");
         this.knight.play("walk", true);
-
         
     }
 }
