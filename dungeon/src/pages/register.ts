@@ -1,7 +1,8 @@
+import { PREVIEW_CONFIG, mountPreview, unmountPreview } from "../pages/previewanimation";
+
 const registerBtn = document.getElementById("register-btn") as HTMLButtonElement;
 const newUsername = document.getElementById("new-username") as HTMLInputElement;
 const newPassword = document.getElementById("new-password") as HTMLInputElement;
-const cavaliereDiv = document.getElementById("SelectedCavaliere") as HTMLDivElement;
 
 registerBtn.addEventListener("click", () => {
   const username = newUsername.value.trim();
@@ -17,18 +18,24 @@ registerBtn.addEventListener("click", () => {
   window.location.href = "login.html";
 });
 
-cavaliereDiv.addEventListener("click", () => {
-  alert("Cavaliere selezionato!");
-});
-import Phaser from "phaser";
-import { KnightAttack } from "../scenes/knight/knightattack";
+const bindings = [
+    ["SelectedCavaliere", PREVIEW_CONFIG.knight],
+    ["SelectedMago", PREVIEW_CONFIG.mage],
+    ["SelectedArciere", PREVIEW_CONFIG.archer],
+    // ["SelectedLadro", PREVIEW_CONFIG.thief]
+  ] as const;
 
-const config = {
-  type: Phaser.AUTO,
-  width:800,
-  height:600,
-  scene: [KnightAttack],
-  backgroundColor: "rgba(255, 255, 255, 0)"
-};
+  bindings.forEach(([id, cfg]) => {
+    const card = document.getElementById(id);
+    if (!card) return;
 
-new Phaser.Game(config);
+    card.addEventListener("mouseenter", () => mountPreview(card, cfg));
+    card.addEventListener("mouseleave", () => unmountPreview(card, cfg));
+  });
+
+  document.getElementById("cancelClass")?.addEventListener("click", () => {
+    bindings.forEach(([id, cfg]) => {
+      const card = document.getElementById(id);
+      if (card) unmountPreview(card, cfg);
+    });
+  });

@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { Torch } from "../scenes/torch";
 import GenericPanel from "../ui/pannel";
-import { Knight } from "../scenes/knight/knightidle";
+import { PREVIEW_CONFIG, mountPreview, unmountPreview } from "../pages/previewanimation";
 const config = {
    type: Phaser.AUTO,
    width: window.innerWidth,
@@ -56,73 +56,6 @@ chanllengeD.addEventListener("click", ()=>{
     console.log("Random room");
   });
 })
-type PreviewConfig = {
-  id: string;
-  scene: typeof Phaser.Scene;
-  canvasWidth: number;
-  canvasHeight: number;
-  imgSrc: string;
-  imgAlt: string;
-};
-  const PREVIEW_CONFIG = {
-  knight: {
-    id: "knight",
-    scene: Knight,
-    canvasWidth: 146,
-    canvasHeight: 136,
-    imgSrc: "/assets/heroes/Cavaliere.png",
-    imgAlt: "Cavaliere Blu"
-  },
-  // mage: { ... },
-  // archer: { ... },
-  // thief: { ... }
-} satisfies Record<string, PreviewConfig>;
-
-const activeGames = new Map<HTMLElement, Phaser.Game>();
-function mountPreview(parent: HTMLElement, config: PreviewConfig) {
-  if (activeGames.has(parent)) return;
-
-  parent.querySelector("img")?.remove();
-
-  const container = document.createElement("div");
-  container.id = `${config.id}-phaser`;
-  container.style.width = `${config.canvasWidth}px`;
-  container.style.height = `${config.canvasHeight}px`;
-
-  parent.prepend(container);
-
-  const game = new Phaser.Game({
-    type: Phaser.AUTO,
-    width: config.canvasWidth,
-    height: config.canvasHeight,
-    parent: container,
-    transparent: true,
-    scene: config.scene,
-    scale: {
-      mode: Phaser.Scale.NONE,
-      autoCenter: Phaser.Scale.CENTER_BOTH
-    }
-  });
-
-  activeGames.set(parent, game);
-}
-
-function unmountPreview(parent: HTMLElement, config: PreviewConfig) {
-  const game = activeGames.get(parent);
-  if (!game) return;
-
-  game.destroy(true);
-  activeGames.delete(parent);
-
-  parent.querySelector(`#${config.id}-phaser`)?.remove();
-
-  const img = document.createElement("img");
-  img.src = config.imgSrc;
-  img.alt = config.imgAlt;
-  img.className = "w-full h-auto max-h-[128px]";
-
-  parent.prepend(img);
-}
 
 changeC.addEventListener("click", () => {
   panel.show(`
@@ -179,9 +112,9 @@ changeC.addEventListener("click", () => {
   `);
   
   const bindings = [
-    ["SelectedCavaliere", PREVIEW_CONFIG.knight]
-    // ["SelectedMago", PREVIEW_CONFIG.mage],
-    // ["SelectedArciere", PREVIEW_CONFIG.archer],
+    ["SelectedCavaliere", PREVIEW_CONFIG.knight],
+    ["SelectedMago", PREVIEW_CONFIG.mage],
+    ["SelectedArciere", PREVIEW_CONFIG.archer],
     // ["SelectedLadro", PREVIEW_CONFIG.thief]
   ] as const;
 

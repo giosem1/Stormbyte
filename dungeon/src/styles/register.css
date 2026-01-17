@@ -75,11 +75,3 @@ button#register-btn {
 button#register-btn:hover {
     background-color: #0056b3;
 }
-
-canvas {
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 1;       
-    pointer-events: none; 
-}
