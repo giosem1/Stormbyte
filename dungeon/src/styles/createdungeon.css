@@ -31,6 +31,45 @@ body {
   transform-origin: 0 0;
 }
 
+.room-static {
+  position: relative;
+  width: 0px;  
+  height: 0px;
+  max-width: none;
+  max-height: none;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.room-dynamic {
+  position: absolute;
+  max-width: none;
+  max-height: none;
+  width: auto;
+  height: auto;
+  pointer-events: auto;
+  z-index: 2;
+}
+
+.enemy-dynamic,
+.trap-dynamic {
+  position: absolute;
+  max-width: none !important;
+  max-height: none !important;
+  width: auto;
+  height: auto;
+  z-index: 3;
+}
+
+#infinite-canvas img {
+  max-width: none;
+  max-height: none;
+}
+
+.absolute {
+  position: absolute;
+}
+
 .room-wrapper {
   display: flex;
   justify-content: center;
@@ -76,16 +115,16 @@ body {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end; /* input sempre in basso */
-  overflow: hidden; /* scroll gestito internamente */
+  justify-content: flex-end;
+  overflow: hidden;
   text-align: left;
 }
 
 #messages {
   color: #ffffff;
-  flex: 1; /* occupa tutto lo spazio sopra l’input */
-  overflow-y: auto; /* abilita lo scroll verticale */
-  margin-bottom: 10px; /* distanza dall’input */
+  flex: 1; 
+  overflow-y: auto; 
+  margin-bottom: 10px;
 }
 
 #messages::-webkit-scrollbar {

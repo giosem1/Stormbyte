@@ -9,7 +9,7 @@ let startY = 0;
 const KEYBOARD_SPEED = 20;
 
 
-function updateCanvas(): void {
+export function updateCanvas(): void {
   canvas.style.transform = `translate(${state.offsetX}px, ${state.offsetY}px)`;
 }
 

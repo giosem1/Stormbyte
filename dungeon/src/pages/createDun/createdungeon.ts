@@ -1,3 +1,4 @@
+import { state } from "./state";
 type MenuCategory = "rooms" | "enemies" | "traps";
 
 const menuButtons = document.querySelectorAll<HTMLButtonElement>(".menu-btn");
@@ -6,7 +7,7 @@ const itemsContainer = document.getElementById("itemsContainer") as HTMLDivEleme
 const itemsData: Record<MenuCategory, string[]> = {
   rooms: [
     "public/assets/rooms/loginroom.png",
-    "public/assets/rooms/loginroom.png"
+    "public/assets/rooms/sacrificeroom.png"
   ],
   enemies: [
     "public/assets/enemis/LoadBEnemis.png"
@@ -49,7 +50,19 @@ menuButtons.forEach(button => {
 renderItems("rooms");
 
 const back = document.getElementById("back-arrow") as HTMLParagraphElement;
-
 back.addEventListener("click", ()=>{
   window.location.href = "homepage.html"
+})
+
+const save = document.getElementById("save") as HTMLParagraphElement;
+save.addEventListener("click", ()=>{
+  const blob = new Blob(
+    [JSON.stringify(state.items, null, 2)],
+    { type: "application/json" }
+  );
+
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "dungeon.json";
+  a.click();
 })
