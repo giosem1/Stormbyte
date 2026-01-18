@@ -1,4 +1,4 @@
-import { state } from "./state";
+import { buildDungeonSave } from "./savedungeon";
 type MenuCategory = "rooms" | "enemies" | "traps";
 
 const menuButtons = document.querySelectorAll<HTMLButtonElement>(".menu-btn");
@@ -39,7 +39,6 @@ function renderItems(category: MenuCategory): void {
 menuButtons.forEach(button => {
   button.addEventListener("click", () => {
 
-    // stato attivo
     menuButtons.forEach(b => b.classList.remove("active"));
     button.classList.add("active");
 
@@ -54,15 +53,23 @@ back.addEventListener("click", ()=>{
   window.location.href = "homepage.html"
 })
 
-const save = document.getElementById("save") as HTMLParagraphElement;
-save.addEventListener("click", ()=>{
+function downloadJSON(data: object) {
   const blob = new Blob(
-    [JSON.stringify(state.items, null, 2)],
+    [JSON.stringify(data, null, 2)],
     { type: "application/json" }
   );
 
+  const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
+  a.href = url;
   a.download = "dungeon.json";
   a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+const save = document.getElementById("save") as HTMLParagraphElement;
+save.addEventListener("click", ()=>{
+  const dungeon = buildDungeonSave();
+  downloadJSON(dungeon);
 })

@@ -7,6 +7,7 @@ body {
   font-family: 'Press Start 2P', cursive;
 }
 
+/* Infinite Canvas */
 #viewport {
   position: fixed;
   inset: 0;
@@ -38,7 +39,6 @@ body {
   max-width: none;
   max-height: none;
   pointer-events: none;
-  z-index: 1;
 }
 
 .room-dynamic {
@@ -48,7 +48,12 @@ body {
   width: auto;
   height: auto;
   pointer-events: auto;
-  z-index: 2;
+  outline: 2px dashed rgba(0, 255, 255, 0.6);
+  outline-offset: -2px;
+}
+
+.room-dynamic.active-room, .enemy-dynamic.active-enemy, .trap-dynamic.active-trap {
+  outline: 2px solid #facc15;
 }
 
 .enemy-dynamic,
@@ -59,6 +64,8 @@ body {
   width: auto;
   height: auto;
   z-index: 3;
+  outline: 2px dashed rgba(255, 0, 34, 0.6);
+  outline-offset: -2px;
 }
 
 #infinite-canvas img {
@@ -70,19 +77,8 @@ body {
   position: absolute;
 }
 
-.room-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
 
-.room {
-  pointer-events: none;
-  max-width: 100%;
-  max-height: 100%;
-  z-index: 2;
-}
-
+/* Menu Dungeon*/
 .dungeon-menu {
   min-height: 140px;
   z-index: 40;

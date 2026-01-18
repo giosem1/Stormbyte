@@ -37,7 +37,7 @@ function spawnDefaultRoom() {
   const src = "public/assets/rooms/loginroom.png";
   const img = document.createElement("img");
   img.src = src;
-  img.classList.add("absolute", "select-none");
+  img.classList.add("absolute", "select-none", "room-dynamic");
   img.draggable = false;
 
   img.onload = () => {
@@ -71,7 +71,7 @@ function spawnDefaultRoom() {
     state.undoStack.push(command);
 
     updateCanvas();
-    enableDrag(img);
+    enableDrag(img, item);
   };
 }
 
@@ -110,6 +110,13 @@ document.addEventListener("mousedown", (e) => {
   const newImg = document.createElement("img");
   newImg.src = img.src;
   newImg.classList.add("absolute", "select-none");
+  if (type === "room") {
+    newImg.classList.add("room-dynamic");
+  }else if (type === "enemy"){ 
+    newImg.classList.add("enemy-dynamic")
+  }else if (type === "trap"){
+    newImg.classList.add("trap-dynamic");
+  } 
   newImg.draggable = false;
 
   newImg.style.width = `${img.naturalWidth * scale}px`;
@@ -119,18 +126,18 @@ document.addEventListener("mousedown", (e) => {
   newImg.style.left = `${e.clientX - canvasRect.left}px`;
   newImg.style.top = `${e.clientY - canvasRect.top}px`;
 
-  enableDrag(newImg);
-
+  const width = img.naturalWidth * scale;
+  const height = img.naturalHeight * scale;
   const item: PlacedItem = {
     id: crypto.randomUUID(),
     src: newImg.src,
     type,
     x: parseFloat(newImg.style.left),
     y: parseFloat(newImg.style.top),
-    width: newImg.offsetWidth,
-    height: newImg.offsetHeight
+    width,
+    height
   };
-
+  enableDrag(newImg, item);
   newImg.dataset.id = item.id;
   
   const command = new AddItemCommand(item, newImg);
@@ -143,7 +150,7 @@ document.addEventListener("mousedown", (e) => {
   draggingImage = newImg;
 });
 
-function enableDrag(img: HTMLImageElement) {
+function enableDrag(img: HTMLImageElement, item: PlacedItem) {
   img.addEventListener("mousedown", (e) => {
     if (e.button !== 0) return;
     e.preventDefault();
@@ -153,6 +160,7 @@ function enableDrag(img: HTMLImageElement) {
     offsetY = e.clientY - rect.top;
 
     draggingImage = img;
+    setActiveRoom(item);
   });
 }
 
@@ -230,6 +238,18 @@ window.addEventListener("keydown", e => {
     state.undoStack.push(cmd);
   }
 });
+
+function setActiveRoom(item: PlacedItem) {
+  document
+    .querySelectorAll("."+item.type+"-dynamic")
+    .forEach(el => el.classList.remove("active-"+item.type));
+
+  const el = document.querySelector(
+    `[data-id="${item.id}"]`
+  ) as HTMLElement;
+
+  if (el) el.classList.add("active-"+item.type);
+}
 
 window.addEventListener("DOMContentLoaded", () => {
   spawnDefaultRoom();
