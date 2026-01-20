@@ -13,8 +13,9 @@ const itemsData: Record<MenuCategory, string[]> = {
     "public/assets/enemis/LoadBEnemis.png"
   ],
   traps: [
-    "public/trap1.png",
-    "public/trap2.png"
+    "public/assets/traps/spikes.png",
+    "public/assets/traps/fire.png",
+    "public/assets/traps/trapDoor.png"
   ]
 };
 function renderItems(category: MenuCategory): void {
@@ -23,18 +24,27 @@ function renderItems(category: MenuCategory): void {
   itemsData[category].forEach(src => {
     const card = document.createElement("div");
     card.className =
-      "w-24 h-24 bg-slate-800/80 rounded-lg border border-white/10 " +
-      "flex items-center justify-center cursor-pointer relative overflow-hidden shadow-xl";
-
+      "w-24 h-32 bg-slate-800/80 rounded-lg border border-white/10 " +
+      "flex flex-col items-center justify-center cursor-pointer relative overflow-hidden shadow-xl";
     const img = document.createElement("img");
     img.src = src;
     img.className = "w-16 h-16 object-contain menu-item";
     img.draggable = true;
 
+    const fileName = src.split("/").pop() || "Unknown";
+    const nameWithoutExt = fileName.split(".")[0];            // rimuove '.png'
+    const labelText = nameWithoutExt.replace(/[-_]/g, " ");  // sostituisce '_' o '-' con spazi
+    const label = document.createElement("span");
+    label.className = "text-xs text-white mt-1 text-center";
+    label.id = "itemName";
+    label.textContent = labelText.charAt(0).toUpperCase() + labelText.slice(1); // prima lettera maiuscola
+
     card.appendChild(img);
+    card.appendChild(label);
     itemsContainer.appendChild(card);
   });
 }
+
 
 menuButtons.forEach(button => {
   button.addEventListener("click", () => {

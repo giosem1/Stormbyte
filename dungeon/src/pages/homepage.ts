@@ -50,10 +50,12 @@ chanllengeD.addEventListener("click", ()=>{
   document.getElementById("confirmRoom")?.addEventListener("click", () => {
     const code = (document.getElementById("roomCode") as HTMLInputElement).value;
     console.log("Room code:", code);
+    window.location.href = "dungeonGame.html";
+
   });
 
   document.getElementById("randomRoom")?.addEventListener("click", () => {
-    console.log("Random room");
+    window.location.href = "dungeonGame.html";
   });
 })
 

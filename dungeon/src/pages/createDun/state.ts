@@ -4,6 +4,7 @@ export interface PlacedItem {
   id: string;
   src: string;
   type: ItemType;
+  name?: string;
   x: number;
   y: number;
   width: number;
@@ -13,6 +14,7 @@ export interface PlacedItem {
 export interface ItemSave {
   id: string;
   asset: string;
+  name?: string;
   x: number;
   y: number;
   width: number;

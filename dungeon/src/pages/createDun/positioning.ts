@@ -7,6 +7,9 @@ let draggingImage: HTMLImageElement | null = null;
 let offsetX = 0;
 let offsetY = 0;
 
+const SNAP_DISTANCE = 100;
+type Side = "top" | "bottom" | "left" | "right";
+
 const SCALE_RULES: Record<ItemType, number> = {
   room: 1,
   enemy: 0.35,
@@ -31,6 +34,49 @@ class AddItemCommand implements Command {
     state.items = state.items.filter(i => i.id !== this.item.id);
     this.element.remove();
   }
+}
+
+function getSidePosition(item: PlacedItem, side: Side) {
+  switch (side) {
+    case "top":
+      return { x: item.x + item.width / 2, y: item.y };
+    case "bottom":
+      return { x: item.x + item.width / 2, y: item.y + item.height };
+    case "left":
+      return { x: item.x, y: item.y + item.height / 2 };
+    case "right":
+      return { x: item.x + item.width, y: item.y + item.height / 2 };
+  }
+}
+
+function trySnap(moving: PlacedItem): boolean {
+  const rooms = state.items.filter(i => i.type === "room" && i.id !== moving.id);
+
+  for (const target of rooms) {
+    const pairs: [Side, Side, (t: PlacedItem) => { x: number; y: number }][] = [
+      ["left", "right", t => ({ x: t.x + t.width, y: t.y })],
+      ["right", "left", t => ({ x: t.x - moving.width, y: t.y })],
+      ["top", "bottom", t => ({ x: t.x, y: t.y + t.height })],
+      ["bottom", "top", t => ({ x: t.x, y: t.y - moving.height })],
+    ];
+
+    for (const [a, b, snapPos] of pairs) {
+      const p1 = getSidePosition(moving, a);
+      const p2 = getSidePosition(target, b);
+
+      const dx = Math.abs(p1.x - p2.x);
+      const dy = Math.abs(p1.y - p2.y);
+
+      if (dx < SNAP_DISTANCE && dy < SNAP_DISTANCE) {
+        const pos = snapPos(target);
+        moving.x = pos.x;
+        moving.y = pos.y;
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 function spawnDefaultRoom() {
@@ -107,6 +153,13 @@ document.addEventListener("mousedown", (e) => {
   const type = getItemType(img.src);
   const scale = SCALE_RULES[type];
 
+  const card = img.parentElement; // l'elemento <div> della card
+  let labelText = "";
+  if (card) {
+    const label = card.querySelector<HTMLSpanElement>("span#itemName");
+    if (label) labelText = label.textContent || "";
+  }
+
   const newImg = document.createElement("img");
   newImg.src = img.src;
   newImg.classList.add("absolute", "select-none");
@@ -132,6 +185,7 @@ document.addEventListener("mousedown", (e) => {
     id: crypto.randomUUID(),
     src: newImg.src,
     type,
+    name: labelText,
     x: parseFloat(newImg.style.left),
     y: parseFloat(newImg.style.top),
     width,
@@ -189,13 +243,26 @@ window.addEventListener("mouseup", () => {
   const item = state.items.find(i => i.id === id)!;
 
   if (item.type === "room") {
+    const snapped = trySnap(item);
+
+    if (!snapped && state.items.filter(i => i.type === "room").length > 1) {
+      draggingImage.remove();
+      state.items = state.items.filter(i => i.id !== id);
+      draggingImage = null;
+      return;
+    }
+
     if (collidesWithOtherRooms(item)) {
       draggingImage.remove();
       state.items = state.items.filter(i => i.id !== id);
       draggingImage = null;
       return;
     }
+
+    draggingImage.style.left = `${item.x}px`;
+    draggingImage.style.top = `${item.y}px`;
   }
+
 
   if (item.type !== "room") {
     const room = findContainingRoom(item);

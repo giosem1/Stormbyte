@@ -34,6 +34,7 @@ function toItemSave(item: PlacedItem, room: PlacedItem): ItemSave {
   return {
     id: item.id,
     asset: item.src,
+    name: item.name,
     x: item.x - room.x,
     y: item.y - room.y,
     width: item.width,

@@ -83,6 +83,10 @@ body {
   min-height: 140px;
   z-index: 40;
 }
+#itemName{
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.5em;
+}
 .menu-btn {
   font-family: 'Press Start 2P', cursive;
 }
