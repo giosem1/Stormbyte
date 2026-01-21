@@ -14,7 +14,14 @@
   <div id="register-box">
         <h2>Registration</h2>
         <input type="text" id="new-username" placeholder="Username" />
-        <input type="password" id="new-password" placeholder="Password" />
+        <ul id="username-errors" class="text-red-400 text-xs mt-2 space-y-1"></ul>
+        <div class="password-wrapper">
+          <input type="password" id="new-password" placeholder="Password" />
+          <button type="button" id="toggle-password" aria-label="Mostra password">
+            <img id="toggle-password-icon" src="/assets/icons/toggleOpen.png" alt="Mostra password"/>
+          </button>
+        </div>
+        <ul id="password-errors" class="text-red-400 text-xs mt-2 space-y-1"></ul>
         <div class="flex flex-wrap justify-center space-x-4 mt-6 mb-4" > 
           <div id="SelectedCavaliere" class="bg-transparent border rounded-lg p-2 mb-4 
                       flex flex-col items-center justify-start 
