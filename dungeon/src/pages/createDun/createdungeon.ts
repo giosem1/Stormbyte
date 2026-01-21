@@ -10,12 +10,12 @@ const itemsData: Record<MenuCategory, string[]> = {
     "public/assets/rooms/sacrificeroom.png"
   ],
   enemies: [
-    "public/assets/enemis/LoadBEnemis.png"
+    "public/assets/enemis/EvilMage.png"
   ],
   traps: [
-    "public/assets/traps/spikes.png",
+    "public/assets/traps/spike.png",
     "public/assets/traps/fire.png",
-    "public/assets/traps/trapDoor.png"
+    "public/assets/traps/bearTrap.png"
   ]
 };
 function renderItems(category: MenuCategory): void {

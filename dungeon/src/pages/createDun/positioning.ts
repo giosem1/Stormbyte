@@ -12,8 +12,8 @@ type Side = "top" | "bottom" | "left" | "right";
 
 const SCALE_RULES: Record<ItemType, number> = {
   room: 1,
-  enemy: 0.35,
-  trap: 0.4
+  enemy: 1.2,
+  trap: 1.8
 };
 
 class AddItemCommand implements Command {

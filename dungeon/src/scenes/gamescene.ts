@@ -12,7 +12,7 @@ interface EnemySave {
 interface TrapSave {
   id: string;
   asset: string;
-  name: "Spike" | "Fire" | "TrapDoor",
+  name: "Spike" | "Fire" | "BearTrap",
   x: number;
   y: number;
 }
@@ -26,11 +26,20 @@ const TRAP_CONFIG = {
     idle: "fir_idle",
     anim: "fireActivate"
   },
-  TrapDoor: {
-    idle: "trd_idle",
-    anim: "trapdActivate"
+  BearTrap: {
+    idle: "brt_idle",
+    anim: "beartActivate"
   }
 }
+const ENEMY_CONFIG = {
+  default: {
+    idle: "enemy_idle",
+    alert: "enemy_alert",
+    attack: "enemy_attack",
+    alertRange: 150,
+    alertDuration: 400
+  }
+};
 
 interface RoomSave {
   id: string;
@@ -50,14 +59,16 @@ interface DungeonSave {
 
 const SCALE_RULES: Record<ItemType, number> = {
   room: 1,
-  enemy: 0.35,
-  trap: 0.4
+  enemy: 1.2,
+  trap: 1.8
 };
 
 export default class GameScene extends Phaser.Scene {
   private dungeon!: DungeonSave;
   private hero!: Phaser.GameObjects.Sprite;
   private traps: Phaser.GameObjects.Sprite[] = [];
+  private enemies: Phaser.GameObjects.Sprite[] = [];
+
   private isAttacking = false;
   constructor() {
     super("GameScene");
@@ -74,21 +85,35 @@ export default class GameScene extends Phaser.Scene {
         frameWidth: 438,
         frameHeight: 408
     });
-    this.load.image("spk_idle", "assets/traps/spikes.png");
+    this.load.image("spk_idle", "assets/traps/spike.png");
 
-    this.load.spritesheet("spk", "assets/TrapAnimation/spkiesAnimation.png", {
-      frameWidth: 312,
-      frameHeight: 104
+    this.load.spritesheet("spk", "assets/TrapAnimation/Spike_Trap.png", {
+      frameWidth: 32,
+      frameHeight: 32
     });
     this.load.image("fir_idle", "assets/traps/fire.png");
-    this.load.spritesheet("fir", "assets/TrapAnimation/fireAnimation.png", {
-        frameWidth: 230,
-        frameHeight: 236
+    this.load.spritesheet("fir", "assets/TrapAnimation/Fire_Trap.png", {
+        frameWidth: 32,
+        frameHeight: 41
     });
-    this.load.image("trd_idle", "assets/traps/trapDoor.png");
-    this.load.spritesheet("trd", "assets/TrapAnimation/trapDoorAnimation.png", {
-        frameWidth: 270,
-        frameHeight: 250
+    this.load.image("brt_idle", "assets/traps/bearTrap.png");
+    this.load.spritesheet("brt", "assets/TrapAnimation/Bear_Trap.png", {
+        frameWidth: 32,
+        frameHeight: 32
+    });
+    this.load.spritesheet("enemy_idle", "assets/enemis/EvilMageIdle.png", {
+        frameWidth: 85,
+        frameHeight: 94
+    });
+
+    this.load.spritesheet("enemy_alert", "assets/enemis/EvilMageAlert.png", {
+        frameWidth: 122,
+        frameHeight: 110
+    });
+
+    this.load.spritesheet("enemy_attack", "assets/enemis/EvilMageAttack.png", {
+        frameWidth: 87,
+        frameHeight: 110
     });
   }
 
@@ -112,6 +137,7 @@ export default class GameScene extends Phaser.Scene {
     });
 
     this.load.once("complete", () => {
+      this.createEnemyAnimations();
       this.trapAnimation();
       this.buildDungeon();
       this.spawnHero();
@@ -136,15 +162,20 @@ export default class GameScene extends Phaser.Scene {
 
 
       room.enemies.forEach(enemy => {
-        const scale = SCALE_RULES.enemy;
-        const e = this.add.image(
+        const e = this.add.sprite(
           room.x + enemy.x,
           room.y + enemy.y,
-          enemy.id
+          "enemy_idle"
         );
-        e.setOrigin(0, 0);
+
+        e.setOrigin(0.5, 1);
         e.setScale(scale);
         e.setDepth(3);
+
+        e.setData("state", "idle");
+        e.play("enemy_idle");
+
+        this.enemies.push(e);
       });
 
       room.traps.forEach(trap => {
@@ -194,7 +225,7 @@ export default class GameScene extends Phaser.Scene {
      if (!this.anims.exists("spikeActivate")) {
       this.anims.create({
         key: "spikeActivate",
-        frames: this.anims.generateFrameNumbers("spk", { start: 0, end: 8 }),
+        frames: this.anims.generateFrameNumbers("spk", { start: 0, end: 13 }),
         frameRate: 16,
         repeat: 0
       });
@@ -203,21 +234,50 @@ export default class GameScene extends Phaser.Scene {
     if (!this.anims.exists("fireActivate")) {
       this.anims.create({
         key: "fireActivate",
-        frames: this.anims.generateFrameNumbers("fir", { start: 0, end: 8 }),
+        frames: this.anims.generateFrameNumbers("fir", { start: 0, end: 13 }),
         frameRate: 5,
         repeat: 0
       });
     }
 
-    if (!this.anims.exists("trapdActivate")) {
+    if (!this.anims.exists("beartActivate")) {
       this.anims.create({
-        key: "trapdActivate",
-        frames: this.anims.generateFrameNumbers("trd", { start: 0, end: 6}),
+        key: "beartActivate",
+        frames: this.anims.generateFrameNumbers("brt", { start: 0, end: 3}),
         frameRate: 5,
         repeat: 0
       });
     }
   }
+  private createEnemyAnimations() {
+    if (!this.anims.exists("enemy_idle")) {
+      this.anims.create({
+        key: "enemy_idle",
+        frames: this.anims.generateFrameNumbers("enemy_idle", { start: 0, end: 7 }),
+        frameRate: 6,
+        repeat: -1
+      });
+    }
+
+    if (!this.anims.exists("enemy_alert")) {
+      this.anims.create({
+        key: "enemy_alert",
+        frames: this.anims.generateFrameNumbers("enemy_alert", { start: 0, end: 7 }),
+        frameRate: 8,
+        repeat: -1
+      });
+    }
+
+    if (!this.anims.exists("enemy_attack")) {
+      this.anims.create({
+        key: "enemy_attack",
+        frames: this.anims.generateFrameNumbers("enemy_attack", { start: 0, end: 7 }),
+        frameRate: 12,
+        repeat: -1
+      });
+    }
+  }
+
   private spawnHero() {
     const startRoom = this.dungeon.rooms.find(r =>
       r.asset.includes("loginroom")
@@ -273,6 +333,41 @@ export default class GameScene extends Phaser.Scene {
     });
   }
 
+  private updateEnemies() {
+  this.enemies.forEach(enemy => {
+    const heroC = this.hero.getCenter();
+    const enemyC = enemy.getCenter();
+
+    const dist = Phaser.Math.Distance.Between(
+      heroC.x,
+      heroC.y,
+      enemyC.x,
+      enemyC.y
+    );
+
+    const state = enemy.getData("state");
+    const cfg = ENEMY_CONFIG.default;
+
+    if (dist <= cfg.alertRange && state === "idle") {
+      enemy.setData("state", "alert");
+      enemy.play("enemy_alert", true);
+
+      this.time.delayedCall(cfg.alertDuration, () => {
+        if (enemy.getData("state") === "alert") {
+          enemy.setData("state", "attack");
+          enemy.play("enemy_attack", true);
+        }
+      });
+    }
+
+    if (dist > cfg.alertRange && state !== "idle") {
+      enemy.setData("state", "idle");
+      enemy.play("enemy_idle", true);
+    }
+  });
+}
+
+
   private initMovement() {
     const cursors = this.input.keyboard!.createCursorKeys();
     const speed = 200;
@@ -314,6 +409,7 @@ export default class GameScene extends Phaser.Scene {
         this.hero.setTexture("hero").setDisplaySize(130, 130).setOrigin(0.5, 1);
       }
       this.activeTraps();
+      this.updateEnemies();
     });
   }
 
