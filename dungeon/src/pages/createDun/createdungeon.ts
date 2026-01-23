@@ -32,12 +32,12 @@ function renderItems(category: MenuCategory): void {
     img.draggable = true;
 
     const fileName = src.split("/").pop() || "Unknown";
-    const nameWithoutExt = fileName.split(".")[0];            // rimuove '.png'
-    const labelText = nameWithoutExt.replace(/[-_]/g, " ");  // sostituisce '_' o '-' con spazi
+    const nameWithoutExt = fileName.split(".")[0];
+    const labelText = nameWithoutExt.replace(/[-_]/g, " ");
     const label = document.createElement("span");
     label.className = "text-xs text-white mt-1 text-center";
     label.id = "itemName";
-    label.textContent = labelText.charAt(0).toUpperCase() + labelText.slice(1); // prima lettera maiuscola
+    label.textContent = labelText.charAt(0).toUpperCase() + labelText.slice(1);
 
     card.appendChild(img);
     card.appendChild(label);

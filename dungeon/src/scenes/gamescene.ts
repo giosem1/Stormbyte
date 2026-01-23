@@ -68,14 +68,25 @@ export default class GameScene extends Phaser.Scene {
   private hero!: Phaser.GameObjects.Sprite;
   private traps: Phaser.GameObjects.Sprite[] = [];
   private enemies: Phaser.GameObjects.Sprite[] = [];
-
+  
   private isAttacking = false;
+  private isDead = false;
   constructor() {
     super("GameScene");
   }
 
   preload() {
+    // Object immage & spritesheet
+    this.load.image("bg-stone", "assets/dark_wall.png");
+    this.load.image("bag", "assets/user/bags.png");
     this.load.json("dungeon", "assets/dungeons/dungeon.json");
+    this.load.image("heart", "assets/heart.png"); 
+    this.load.spritesheet("heart_loss", "assets/heart_loss.png", {
+        frameWidth: 256,
+        frameHeight: 217
+    });
+
+    // Hero spritesheet
     this.load.image("hero", "assets/heroes/Cavaliere.png");
     this.load.spritesheet("kng", "assets/KnightAnimation/KnightWalk.png", {
         frameWidth: 290,
@@ -85,8 +96,13 @@ export default class GameScene extends Phaser.Scene {
         frameWidth: 438,
         frameHeight: 408
     });
-    this.load.image("spk_idle", "assets/traps/spike.png");
+    this.load.spritesheet("kngDeath", "assets/KnightAnimation/KnightDeath.png", {
+    frameWidth: 361,
+    frameHeight: 288
+    });
 
+    // Traps spritesheet
+    this.load.image("spk_idle", "assets/traps/spike.png");
     this.load.spritesheet("spk", "assets/TrapAnimation/Spike_Trap.png", {
       frameWidth: 32,
       frameHeight: 32
@@ -101,6 +117,8 @@ export default class GameScene extends Phaser.Scene {
         frameWidth: 32,
         frameHeight: 32
     });
+
+    // Enemis spritesheet
     this.load.spritesheet("enemy_idle", "assets/enemis/EvilMageIdle.png", {
         frameWidth: 85,
         frameHeight: 94
@@ -118,8 +136,36 @@ export default class GameScene extends Phaser.Scene {
   }
 
   create() {
+     if (!this.anims.exists("walk")) {
+        this.createAllAnimations();
+    } 
     this.dungeon = this.cache.json.get("dungeon");
+    const { width, height } = this.scale;
+    const bg = this.add.tileSprite(0, 0, width, height, "bg-stone");
 
+    bg.setOrigin(0);
+    bg.setScrollFactor(0);
+    bg.setDepth(-100);
+    bg.setAlpha(0.25);
+
+    const bagIcon = this.add.image(width - 50, 50, "bag");
+    bagIcon.setScale(0.1)
+    bagIcon.setScrollFactor(0);
+    bagIcon.setDepth(100);
+    bagIcon.setInteractive();
+    bagIcon.on("pointerdown", () => {
+      console.log("Apri inventario");
+    });
+
+    const exitButton = this.add.text(50, 50, "<-", { fontFamily: '"Press Start 2P"', fontSize: '30px', color: '#ffffff'});
+    exitButton.setOrigin(0.5, 0.5);
+    exitButton.setScrollFactor(0);
+    exitButton.setDepth(100);
+    exitButton.setInteractive();
+    exitButton.on("pointerdown", () => {
+      window.location.href = 'homepage.html';
+    });
+    
     if (!this.dungeon) {
       throw new Error("Dungeon JSON non caricato");
     }
@@ -141,6 +187,8 @@ export default class GameScene extends Phaser.Scene {
       this.trapAnimation();
       this.buildDungeon();
       this.spawnHero();
+      this.createUI();
+      this.createHeartAnimations();
     });
     this.load.on('filecomplete', (key: string) => {
       console.log("Caricato file: ", key);
@@ -151,6 +199,37 @@ export default class GameScene extends Phaser.Scene {
     this.load.start();
   }
 
+  private createUI() {
+    const { width, height } = this.scale;
+    const maxHealth = 10;
+    const heartSpacing = 4; 
+    const heartSize = 32; 
+
+    this.load.once("complete", () => {
+        const healthContainer = this.add.container(width / 2, height - 50);
+        healthContainer.setScrollFactor(0);
+        healthContainer.setDepth(100);
+
+        const hearts: Phaser.GameObjects.Image[] = [];
+
+        for (let i = 0; i < maxHealth; i++) {
+            const heart = this.add.image(
+                -((maxHealth - 1) * (heartSize + heartSpacing)) / 2 + i * (heartSize + heartSpacing),
+                0,
+                "heart"
+            );
+            heart.setOrigin(0, 0);
+            heart.setDisplaySize(heartSize, heartSize);
+            healthContainer.add(heart);
+            hearts.push(heart);
+        }
+
+        this.data.set("hearts", hearts);
+        this.data.set("maxHealth", maxHealth);
+    });
+    this.load.start();
+  } 
+  
   private buildDungeon() {
     this.dungeon.rooms.forEach(room => {
       const scale = SCALE_RULES.room;
@@ -162,11 +241,7 @@ export default class GameScene extends Phaser.Scene {
 
 
       room.enemies.forEach(enemy => {
-        const e = this.add.sprite(
-          room.x + enemy.x,
-          room.y + enemy.y,
-          "enemy_idle"
-        );
+        const e = this.add.sprite(room.x + enemy.x, room.y + enemy.y, "enemy_idle");
 
         e.setOrigin(0.5, 1);
         e.setScale(scale);
@@ -176,6 +251,17 @@ export default class GameScene extends Phaser.Scene {
         e.play("enemy_idle");
 
         this.enemies.push(e);
+        e.setData("hp", 3);
+        const hearts: Phaser.GameObjects.Image[] = [];
+
+        for (let i = 0; i < 3; i++) {
+          const h = this.add.image(e.x - 12 + i * 12, e.y - e.displayHeight - 10, "heart");
+          h.setScale(0.5);
+          h.setDepth(5);
+          hearts.push(h);
+        }
+
+        e.setData("hearts", hearts);
       });
 
       room.traps.forEach(trap => {
@@ -184,11 +270,7 @@ export default class GameScene extends Phaser.Scene {
 
         if (!config) return;
 
-        const t = this.add.sprite(
-          room.x + trap.x,
-          room.y + trap.y,
-          config.idle
-        );
+        const t = this.add.sprite(room.x + trap.x, room.y + trap.y, config.idle);
         
         t.setOrigin(0, 0);
         t.setScale(scale);
@@ -201,6 +283,13 @@ export default class GameScene extends Phaser.Scene {
       });
     });
   }
+
+  // Animation
+  private createAllAnimations() {
+    this.createKnightAnimations();
+    this.createEnemyAnimations();
+    this.trapAnimation();
+  }  
 
   private createKnightAnimations() {
     if (!this.anims.exists("walk")) {
@@ -220,7 +309,16 @@ export default class GameScene extends Phaser.Scene {
             repeat: 0
         });
     }
+    if (!this.anims.exists("death")) {
+        this.anims.create({
+            key: "death",
+            frames: this.anims.generateFrameNumbers("kngDeath", { start: 0, end: 35 }),
+            frameRate: 10,
+            repeat: 0
+        });
+    }
   }
+  
   private trapAnimation() {
      if (!this.anims.exists("spikeActivate")) {
       this.anims.create({
@@ -249,6 +347,7 @@ export default class GameScene extends Phaser.Scene {
       });
     }
   }
+
   private createEnemyAnimations() {
     if (!this.anims.exists("enemy_idle")) {
       this.anims.create({
@@ -277,30 +376,23 @@ export default class GameScene extends Phaser.Scene {
       });
     }
   }
-
-  private spawnHero() {
-    const startRoom = this.dungeon.rooms.find(r =>
-      r.asset.includes("loginroom")
-    );
-
-    if (!startRoom) {
-      throw new Error("loginroom non trovata");
-    }
-
-    const x = startRoom.x + startRoom.width / 2;
-    const y = startRoom.y + startRoom.height / 2;
-
-    this.hero = this.add.sprite(x, y, "hero").setScale(0.3).setOrigin(0.5, 1);
-    this.hero.setDepth(10);
-
-    this.cameras.main.startFollow(this.hero);
-    this.cameras.main.setZoom(1);
-    this.createKnightAnimations();
-    this.initMovement();
-    this.initAttack();
-  }
   
- private activeTraps() {
+  private createHeartAnimations() {
+    if (!this.anims.exists("heartLose")) {
+        this.anims.create({
+            key: "heartLose",
+            frames: this.anims.generateFrameNumbers("heart_loss", {
+                start: 0,
+                end: 15
+            }),
+            frameRate: 12,
+            repeat: 0
+        });
+    }
+  }
+
+  // Traps
+  private activeTraps() {
     const RANGE = 80;
 
     this.traps.forEach(trap => {
@@ -329,45 +421,82 @@ export default class GameScene extends Phaser.Scene {
           trap.setTexture(config.idle);
           trap.setData("activated", false);
         });
+        this.takeDamage(1)
       } 
     });
   }
 
+  // Enemis
   private updateEnemies() {
-  this.enemies.forEach(enemy => {
-    const heroC = this.hero.getCenter();
-    const enemyC = enemy.getCenter();
+    this.enemies.forEach(enemy => {
+      const hearts = enemy.getData("hearts") as Phaser.GameObjects.Image[];
+      if (hearts) {
+        hearts.forEach((h, i) => {
+          h.x = enemy.x - 12 + i * 12;
+          h.y = enemy.y - enemy.displayHeight - 10;
+        });
+      }
+      const heroC = this.hero.getCenter();
+      const enemyC = enemy.getCenter();
 
-    const dist = Phaser.Math.Distance.Between(
-      heroC.x,
-      heroC.y,
-      enemyC.x,
-      enemyC.y
+      const dist = Phaser.Math.Distance.Between(
+        heroC.x,
+        heroC.y,
+        enemyC.x,
+        enemyC.y
+      );
+
+      const state = enemy.getData("state");
+      const cfg = ENEMY_CONFIG.default;
+
+      if (dist <= cfg.alertRange && state === "idle") {
+        enemy.setData("state", "alert");
+        enemy.play("enemy_alert", true);
+
+        this.time.delayedCall(cfg.alertDuration, () => {
+          if (enemy.getData("state") === "alert") {
+            enemy.setData("state", "attack");
+            enemy.play("enemy_attack", true);
+
+            this.time.delayedCall(500, () => {
+              if (!this.isDead) {
+                this.takeDamage(2);
+              }
+            });
+          }
+        });
+      }
+
+      if (dist > cfg.alertRange && state !== "idle") {
+        enemy.setData("state", "idle");
+        enemy.play("enemy_idle", true);
+      }
+    });
+  }
+
+  private spawnHero() {
+    const startRoom = this.dungeon.rooms.find(r =>
+      r.asset.includes("loginroom")
     );
 
-    const state = enemy.getData("state");
-    const cfg = ENEMY_CONFIG.default;
-
-    if (dist <= cfg.alertRange && state === "idle") {
-      enemy.setData("state", "alert");
-      enemy.play("enemy_alert", true);
-
-      this.time.delayedCall(cfg.alertDuration, () => {
-        if (enemy.getData("state") === "alert") {
-          enemy.setData("state", "attack");
-          enemy.play("enemy_attack", true);
-        }
-      });
+    if (!startRoom) {
+      throw new Error("loginroom non trovata");
     }
 
-    if (dist > cfg.alertRange && state !== "idle") {
-      enemy.setData("state", "idle");
-      enemy.play("enemy_idle", true);
-    }
-  });
-}
+    const x = startRoom.x + startRoom.width / 2;
+    const y = startRoom.y + startRoom.height / 2;
 
+    this.hero = this.add.sprite(x, y, "hero").setScale(0.3).setOrigin(0.5, 1);
+    this.hero.setDepth(10);
 
+    this.cameras.main.startFollow(this.hero);
+    this.cameras.main.setZoom(1);
+    this.createKnightAnimations();
+    this.initMovement();
+    this.initAttack();
+  }
+
+  // Hero movement
   private initMovement() {
     const cursors = this.input.keyboard!.createCursorKeys();
     const speed = 200;
@@ -413,6 +542,30 @@ export default class GameScene extends Phaser.Scene {
     });
   }
 
+  // Hero attack
+  private damageEnemy(enemy: Phaser.GameObjects.Sprite) {
+    let hp = enemy.getData("hp");
+    if (hp <= 0) return;
+
+    hp--;
+    enemy.setData("hp", hp);
+
+    const hearts = enemy.getData("hearts") as Phaser.GameObjects.Image[];
+    if (hearts && hearts[hp]) {
+      hearts[hp].setVisible(false);
+    }
+
+    if (hp === 0) {
+      enemy.stop();
+      if (hearts) {
+        hearts.forEach(h => h.destroy());
+      }
+
+      enemy.destroy();
+      this.enemies = this.enemies.filter(e => e !== enemy);
+    }
+  }
+
   private initAttack() {
     const attackKey = this.input.keyboard!.addKey(
         Phaser.Input.Keyboard.KeyCodes.SPACE
@@ -424,7 +577,19 @@ export default class GameScene extends Phaser.Scene {
         this.isAttacking = true;
 
         this.hero.setTexture("kngAttack");
-        this.hero.play("attack", true).setDisplaySize(130, 130).setOrigin(0.5, 1)
+        this.hero.play("attack", true).setDisplaySize(130, 130).setOrigin(0.5, 1);
+        this.enemies.forEach(enemy => {
+        const d = Phaser.Math.Distance.Between(
+          this.hero.x,
+          this.hero.y,
+          enemy.x,
+          enemy.y
+        );
+
+        if (d < 80) {
+          this.damageEnemy(enemy);
+        }
+      });
     });
 
     this.hero.on("animationcomplete", (anim: Phaser.Animations.Animation) => {
@@ -432,6 +597,135 @@ export default class GameScene extends Phaser.Scene {
             this.isAttacking = false;
             this.hero.setTexture("hero").setDisplaySize(130, 130).setOrigin(0.5, 1);
         }
+    });
+  }
+  // Hero damege taken
+  private takeDamage(amount: number) {
+    const hearts = this.data.get("hearts") as Phaser.GameObjects.Image[];
+    if (!hearts || amount <= 0) return;
+
+    const visibleHearts = hearts
+        .map((h, i) => h.visible ? i : -1)
+        .filter(i => i !== -1);
+
+    const damage = Math.min(amount, visibleHearts.length);
+
+    for (let i = 0; i < damage; i++) {
+        const index = visibleHearts[visibleHearts.length - 1 - i];
+        const heart = hearts[index];
+
+        heart.setVisible(false);
+        const animHeart = this.add.sprite(
+            heart.x + heart.parentContainer!.x,
+            heart.y + heart.parentContainer!.y,
+            "heart_loss"
+        );
+
+        animHeart.setScrollFactor(0);
+        animHeart.setDepth(200);
+
+        animHeart.setDisplaySize(heart.displayWidth, heart.displayHeight);
+
+        animHeart.play("heartLose");
+
+        animHeart.once("animationcomplete", () => {
+            animHeart.destroy();
+        });
+    }
+    const remainingHearts = hearts.filter(h => h.visible).length;
+
+    if (remainingHearts === 0 && !this.isDead) {
+        this.killHero();
+    }
+  }
+
+  // Hero death
+  private killHero() {
+    if (this.isDead) return;
+
+    this.isDead = true;
+    this.isAttacking = true;
+
+    this.hero.stop();
+
+    this.hero.setTexture("kngDeath");
+    this.hero.setScale(0.3); // ← basta questo
+    this.hero.setOrigin(0.5, 1);
+    this.hero.play("death");
+
+    this.cameras.main.stopFollow();
+
+    this.hero.once("animationcomplete", () => {
+        const { width, height } = this.scale;
+
+        // overlay
+        const overlay = this.add.rectangle(
+            width / 2,
+            height / 2,
+            width,
+            height,
+            0x000000,
+            0.7
+        );
+        overlay.setScrollFactor(0);
+        overlay.setDepth(200);
+
+        // GAME OVER
+        const gameOverText = this.add.text(
+            width / 2,
+            height / 2 - 80,
+            "GAME OVER",
+            {
+                fontFamily: '"Press Start 2P"',
+                fontSize: "32px",
+                color: "#ff0000"
+            }
+        );
+        
+        gameOverText.setOrigin(0.5);
+        gameOverText.setScrollFactor(0);
+        gameOverText.setDepth(201);
+
+        const reviveBtn = this.add.text(
+            width / 2,
+            height / 2,
+            "RESUSCITA",
+            {
+                fontFamily: '"Press Start 2P"',
+                fontSize: "16px",
+                color: "#ffffff",
+                backgroundColor: "#000000",
+                padding: { x: 12, y: 8 }
+            }
+        ).setOrigin(0.5)
+         .setScrollFactor(0)
+         .setDepth(201)
+         .setInteractive({ useHandCursor: true });
+
+        reviveBtn.on("pointerdown", () => {
+            this.scene.restart(); // ← ORA FUNZIONA
+        });
+
+        // ESCI
+        const exitBtn = this.add.text(
+            width / 2,
+            height / 2 + 50,
+            "ESCI",
+            {
+                fontFamily: '"Press Start 2P"',
+                fontSize: "16px",
+                color: "#ffffff",
+                backgroundColor: "#000000",
+                padding: { x: 24, y: 8 }
+            }
+        ).setOrigin(0.5)
+         .setScrollFactor(0)
+         .setDepth(201)
+         .setInteractive({ useHandCursor: true });
+
+        exitBtn.on("pointerdown", () => {
+            window.location.href = "homepage.html";
+        });
     });
   }
 
