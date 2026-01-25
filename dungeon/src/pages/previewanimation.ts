@@ -35,8 +35,7 @@ export const PREVIEW_CONFIG = {
     canvasHeight: 136,
     imgSrc: "/assets/heroes/Aricere.png",
     imgAlt: "Arciere Verde"
-  },
-  // thief: { ... }
+  }
 } satisfies Record<string, PreviewConfig>;
 
 const activeGames = new Map<HTMLElement, Phaser.Game>();

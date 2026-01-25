@@ -29,7 +29,7 @@ createD.addEventListener("click", ()=>{
 })
 
 chanllengeD.addEventListener("click", ()=>{
-     panel.show(`
+  panel.show(`
     <h2 class="panel-title text-lg mb-6">Join Chamber</h2>
 
     <input 
@@ -97,16 +97,6 @@ changeC.addEventListener("click", () => {
         <span class="block font-semibold text-xl text-white mt-2">Arcer</span>
       </div>
 
-      <div id="SelectedLadro" class="bg-transparent border rounded-lg p-2 mb-4 
-        flex flex-col items-center justify-start 
-        w-full sm:w-1/2 md:w-1/4 lg:w-1/4 max-w-[150px]">
-
-        <img class="w-full h-auto max-h-[128px]"
-             src="/assets/heroes/Ladro.png"
-             alt="Ladro Nero"/>
-
-        <span class="block font-semibold text-xl text-white mt-2">Thief</span>
-      </div> 
     </div>
 
     <button id="confirmClass" class="panel-btn">CONFIRM</button>
@@ -116,8 +106,7 @@ changeC.addEventListener("click", () => {
   const bindings = [
     ["SelectedCavaliere", PREVIEW_CONFIG.knight],
     ["SelectedMago", PREVIEW_CONFIG.mage],
-    ["SelectedArciere", PREVIEW_CONFIG.archer],
-    // ["SelectedLadro", PREVIEW_CONFIG.thief]
+    ["SelectedArciere", PREVIEW_CONFIG.archer]
   ] as const;
 
   bindings.forEach(([id, cfg]) => {

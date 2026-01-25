@@ -41,6 +41,17 @@ const ENEMY_CONFIG = {
   }
 };
 
+interface DoorSave {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  targetRoomId: string;
+  spawnX: number;
+  spawnY: number;
+}
+
 interface RoomSave {
   id: string;
   asset: string;
@@ -48,6 +59,7 @@ interface RoomSave {
   y: number;
   width: number;
   height: number;
+  doors: DoorSave[];
   enemies: EnemySave[];
   traps: TrapSave[];
 }
@@ -58,17 +70,23 @@ interface DungeonSave {
 }
 
 const SCALE_RULES: Record<ItemType, number> = {
-  room: 1,
-  enemy: 1.2,
-  trap: 1.8
+  room: 1.2,
+  enemy: 1,
+  trap: 1.5
 };
+const HERO_TARGET_HEIGHT = 120;
 
 export default class GameScene extends Phaser.Scene {
   private dungeon!: DungeonSave;
   private hero!: Phaser.GameObjects.Sprite;
   private traps: Phaser.GameObjects.Sprite[] = [];
   private enemies: Phaser.GameObjects.Sprite[] = [];
-  
+  private currentRoom!: RoomSave;
+  private isTransitioningRoom = false;
+  private inventoryPanel?: Phaser.GameObjects.Container;
+  private isInventoryOpen: boolean = false;
+  private inventorySlots: Phaser.GameObjects.Image[] = [];
+  private itemsInScene: Phaser.GameObjects.Image[] = [];
   private isAttacking = false;
   private isDead = false;
   constructor() {
@@ -76,7 +94,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   preload() {
-    // Object immage & spritesheet
+    // Object image & spritesheet
     this.load.image("bg-stone", "assets/dark_wall.png");
     this.load.image("bag", "assets/user/bags.png");
     this.load.json("dungeon", "assets/dungeons/dungeon.json");
@@ -93,12 +111,12 @@ export default class GameScene extends Phaser.Scene {
         frameHeight: 309
     });
     this.load.spritesheet("kngAttack", "assets/KnightAnimation/KnightAttack.png", {
-        frameWidth: 438,
+        frameWidth: 439,
         frameHeight: 408
     });
     this.load.spritesheet("kngDeath", "assets/KnightAnimation/KnightDeath.png", {
-    frameWidth: 361,
-    frameHeight: 288
+        frameWidth: 361,
+        frameHeight: 288
     });
 
     // Traps spritesheet
@@ -156,6 +174,9 @@ export default class GameScene extends Phaser.Scene {
     bagIcon.on("pointerdown", () => {
       console.log("Apri inventario");
     });
+    bagIcon.on("pointerdown", () => {
+      this.toggleInventory();
+    });
 
     const exitButton = this.add.text(50, 50, "<-", { fontFamily: '"Press Start 2P"', fontSize: '30px', color: '#ffffff'});
     exitButton.setOrigin(0.5, 0.5);
@@ -189,6 +210,8 @@ export default class GameScene extends Phaser.Scene {
       this.spawnHero();
       this.createUI();
       this.createHeartAnimations();
+      this.spawnRandomItems();
+      this.initItemPickup();
     });
     this.load.on('filecomplete', (key: string) => {
       console.log("Caricato file: ", key);
@@ -227,6 +250,54 @@ export default class GameScene extends Phaser.Scene {
         this.data.set("hearts", hearts);
         this.data.set("maxHealth", maxHealth);
     });
+    const slotSize = 64;
+    const padding = 10;
+
+    this.inventoryPanel = this.add.container(width / 2, height / 2).setDepth(150);
+    this.inventoryPanel.setScrollFactor(0);
+    this.inventoryPanel.setVisible(false);
+
+    const bg = this.add.rectangle(0, 0, 300, 400, 0x4b3b2a, 0.9);
+    bg.setStrokeStyle(4, 0x000000);
+    this.inventoryPanel.add(bg);
+
+    const title = this.add.text(0, -180, "Inventario", {
+        fontFamily: '"Press Start 2P"',
+        fontSize: "16px",
+        color: "#FFD700"
+    }).setOrigin(0.5);
+    this.inventoryPanel.add(title);
+
+    const closeBtn = this.add.text(0, 180, "CHIUDI", {
+        fontFamily: '"Press Start 2P"',
+        fontSize: "16px",
+        color: "#ffffff",
+        backgroundColor: "#000000",
+        padding: { x: 12, y: 6 }
+    }).setOrigin(0.5)
+     .setInteractive({ useHandCursor: true });
+    closeBtn.on("pointerdown", () => this.toggleInventory());
+    this.inventoryPanel.add(closeBtn);
+
+    this.inventorySlots = [];
+    for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+            const x = -slotSize - padding + col * (slotSize + padding);
+            const y = -slotSize - padding + row * (slotSize + padding);
+
+            const slotBg = this.add.rectangle(x, y, slotSize, slotSize, 0x7b5e57);
+            slotBg.setStrokeStyle(2, 0x000000);
+            this.inventoryPanel.add(slotBg);
+
+            const slotItem = this.add.image(x, y, "");
+            slotItem.setOrigin(0.5, 0.5);
+            slotItem.setVisible(false);
+            slotItem.setData("filled", false);
+            this.inventoryPanel.add(slotItem);
+
+            this.inventorySlots.push(slotItem);
+        }
+    }
     this.load.start();
   } 
   
@@ -243,7 +314,7 @@ export default class GameScene extends Phaser.Scene {
       room.enemies.forEach(enemy => {
         const e = this.add.sprite(room.x + enemy.x, room.y + enemy.y, "enemy_idle");
 
-        e.setOrigin(0.5, 1);
+        e.setOrigin(0, 0);
         e.setScale(scale);
         e.setDepth(3);
 
@@ -282,6 +353,170 @@ export default class GameScene extends Phaser.Scene {
         this.traps.push(t);
       });
     });
+  }
+
+
+  private toggleInventory() {
+    if (!this.inventoryPanel) return;
+
+    this.isInventoryOpen = !this.isInventoryOpen;
+    this.inventoryPanel.setVisible(this.isInventoryOpen);
+
+    this.inventorySlots.forEach(slot => {
+        if (slot.getData("filled")) {
+            slot.setVisible(this.isInventoryOpen);
+        }
+    });
+  }
+
+  // Spawn and collectiong items
+  private spawnRandomItems() {
+    const itemAssets = [
+        { key: "potion", asset: "assets/items/potion_health.png" },
+        { key: "emerald", asset: "assets/items/emerald.png" },
+        { key: "rubin", asset: "assets/items/rubin.png" },
+        { key: "sword", asset: "assets/items/sword.png" },
+        { key: "shield", asset: "assets/items/shield.png" }
+    ];
+    
+    itemAssets.forEach(item => {
+        if (!this.textures.exists(item.key)) {
+            this.load.image(item.key, item.asset);
+        }
+    });
+
+    this.load.once("complete", () => {
+        this.dungeon.rooms.forEach(room => {
+            const numItems = Phaser.Math.Between(1, 3);
+
+            for (let i = 0; i < numItems; i++) {
+                const item = Phaser.Math.RND.pick(itemAssets);
+                const centerX = room.x + room.width / 2;
+                const centerY = room.y + room.height / 2;
+
+                const rangeX = room.width / 4;
+                const rangeY = room.height / 4;
+
+                const x = Phaser.Math.Between(centerX - rangeX, centerX + rangeX);
+                const y = Phaser.Math.Between(centerY - rangeY, centerY + rangeY);
+
+                const obj = this.add.image(x, y, item.key);
+                obj.setOrigin(0.5, 0.5);
+                obj.setDepth(5);
+                obj.setScale(2);
+
+                obj.setData("itemKey", item.key);
+                obj.setData("roomId", room.id);
+
+                this.itemsInScene.push(obj);
+                obj.setInteractive({ useHandCursor: true });
+                obj.on("pointerdown", () => {
+                    this.collectItem(obj);
+                });
+                this.itemsInScene.push(obj);
+            }
+        });
+    });
+
+    this.load.start();
+  }
+
+  private initItemPickup() {
+    const pickupKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+
+    this.events.on("update", () => {
+        if (Phaser.Input.Keyboard.JustDown(pickupKey)) {
+            this.itemsInScene.forEach(item => {
+                const dist = Phaser.Math.Distance.Between(this.hero.x, this.hero.y, item.x, item.y);
+
+                if (dist < 50) {
+                    this.collectItem(item);
+                }
+            });
+        }
+    });
+  }
+
+  private collectItem(item: Phaser.GameObjects.Image) {
+    const slotIndex = this.inventorySlots.findIndex(s => !s.getData("filled"));
+    if (slotIndex === -1) {
+        console.log("Inventario pieno!");
+        return;
+    }
+
+    const slot = this.inventorySlots[slotIndex];
+    slot.setTexture(item.getData("itemKey"));
+    slot.setData("filled", true);
+    slot.setData("itemKey", item.getData("itemKey"));
+
+    if (this.isInventoryOpen) {
+        slot.setVisible(true);
+    }
+
+    item.destroy();
+    this.itemsInScene = this.itemsInScene.filter(i => i !== item);
+    console.log("Raccolto:", slot.getData("itemKey"));
+  }
+
+  // Room physic
+  private getHeroHitbox(): Phaser.Geom.Rectangle {
+    const width = 40;
+    const height = 20;
+
+    return new Phaser.Geom.Rectangle(
+        this.hero.x - width / 2,
+        this.hero.y - height,
+        width,
+        height
+    );
+  }
+
+  private clampAndHandleRoomTransition(prevX: number, prevY: number) {
+    if (!this.currentRoom || this.isTransitioningRoom) return;
+
+    const r = this.currentRoom;
+    const hitbox = this.getHeroHitbox();
+
+    const roomRect = new Phaser.Geom.Rectangle(r.x, r.y, r.width, r.height);
+
+    if (Phaser.Geom.Rectangle.ContainsRect(roomRect, hitbox)) {
+        return;
+    }
+    const nextRoom = this.dungeon.rooms.find(other => {
+        if (other.id === r.id) return false;
+
+        const otherRect = new Phaser.Geom.Rectangle(
+            other.x,
+            other.y,
+            other.width,
+            other.height
+        );
+
+        return Phaser.Geom.Rectangle.Overlaps(hitbox, otherRect);
+    });
+    if (nextRoom) {
+        this.isTransitioningRoom = true;
+        this.currentRoom = nextRoom;
+
+        this.hero.x = Phaser.Math.Clamp(
+            this.hero.x,
+            nextRoom.x + 20,
+            nextRoom.x + nextRoom.width - 20
+        );
+        this.hero.y = Phaser.Math.Clamp(
+            this.hero.y,
+            nextRoom.y + 20,
+            nextRoom.y + nextRoom.height - 20
+        );
+
+        this.time.delayedCall(0, () => {
+            this.isTransitioningRoom = false;
+        });
+
+        return;
+    }
+    this.hero.x = prevX;
+    this.hero.y = prevY;
   }
 
   // Animation
@@ -393,7 +628,7 @@ export default class GameScene extends Phaser.Scene {
 
   // Traps
   private activeTraps() {
-    const RANGE = 80;
+    const RANGE = 50;
 
     this.traps.forEach(trap => {
       if (trap.getData("activated")) return;
@@ -430,34 +665,42 @@ export default class GameScene extends Phaser.Scene {
   private updateEnemies() {
     this.enemies.forEach(enemy => {
       const hearts = enemy.getData("hearts") as Phaser.GameObjects.Image[];
-      if (hearts) {
+      if (hearts && hearts.length > 0) {
+  
+        const centerX = enemy.x + enemy.displayWidth / 2;
+        const topY = enemy.y - 10;
+  
+        const totalWidth = (hearts.length - 1) * 12;
+  
         hearts.forEach((h, i) => {
-          h.x = enemy.x - 12 + i * 12;
-          h.y = enemy.y - enemy.displayHeight - 10;
+          h.setPosition(
+            centerX - totalWidth / 2 + i * 12,
+            topY
+          );
         });
       }
       const heroC = this.hero.getCenter();
       const enemyC = enemy.getCenter();
-
+  
       const dist = Phaser.Math.Distance.Between(
         heroC.x,
         heroC.y,
         enemyC.x,
         enemyC.y
       );
-
+  
       const state = enemy.getData("state");
       const cfg = ENEMY_CONFIG.default;
-
+  
       if (dist <= cfg.alertRange && state === "idle") {
         enemy.setData("state", "alert");
         enemy.play("enemy_alert", true);
-
+  
         this.time.delayedCall(cfg.alertDuration, () => {
           if (enemy.getData("state") === "alert") {
             enemy.setData("state", "attack");
             enemy.play("enemy_attack", true);
-
+  
             this.time.delayedCall(500, () => {
               if (!this.isDead) {
                 this.takeDamage(2);
@@ -466,13 +709,14 @@ export default class GameScene extends Phaser.Scene {
           }
         });
       }
-
+  
       if (dist > cfg.alertRange && state !== "idle") {
         enemy.setData("state", "idle");
         enemy.play("enemy_idle", true);
       }
     });
   }
+  
 
   private spawnHero() {
     const startRoom = this.dungeon.rooms.find(r =>
@@ -482,13 +726,20 @@ export default class GameScene extends Phaser.Scene {
     if (!startRoom) {
       throw new Error("loginroom non trovata");
     }
+    this.currentRoom = startRoom; 
 
     const x = startRoom.x + startRoom.width / 2;
     const y = startRoom.y + startRoom.height / 2;
 
-    this.hero = this.add.sprite(x, y, "hero").setScale(0.3).setOrigin(0.5, 1);
+    this.hero = this.add.sprite(x, y, "kngDeath", 0);
+    this.hero.setOrigin(0.5, 1);
     this.hero.setDepth(10);
+    const frame = this.textures.get("kngDeath").get("0");
+    const scale = HERO_TARGET_HEIGHT / frame.height;
+    this.hero.setScale(scale);
 
+    this.isDead = false;
+    this.isAttacking = false;
     this.cameras.main.startFollow(this.hero);
     this.cameras.main.setZoom(1);
     this.createKnightAnimations();
@@ -509,36 +760,39 @@ export default class GameScene extends Phaser.Scene {
     }) as any;
 
     this.events.on("update", (_: any, delta: number) => {
+      const prevX = this.hero.x;
+      const prevY = this.hero.y;
       if (this.isAttacking) return;
       const dt = delta / 1000;
       let moving = false;
 
       if (cursors.left?.isDown || keys.left?.isDown) {
           this.hero.x -= speed * dt;
-          this.hero.play("walk", true).setDisplaySize(130, 130).setOrigin(0.5, 1);
+          this.hero.play("walk", true);
           this.hero.flipX = true;
           moving = true;
       } else if (cursors.right?.isDown || keys.right?.isDown) {
           this.hero.x += speed * dt;
-          this.hero.play("walk", true).setDisplaySize(130, 130).setOrigin(0.5, 1);
+          this.hero.play("walk", true);
           this.hero.flipX = false;
           moving = true;
       } else if (cursors.up?.isDown || keys.up?.isDown) {
           this.hero.y -= speed * dt;
-          this.hero.play("walk", true).setDisplaySize(130, 130).setOrigin(0.5, 1);
+          this.hero.play("walk", true);
           moving = true;
       } else if (cursors.down?.isDown || keys.down?.isDown) {
           this.hero.y += speed * dt;
-          this.hero.play("walk", true).setDisplaySize(130, 130).setOrigin(0.5, 1);
+          this.hero.play("walk", true);
           moving = true;
       }
         
       if (!moving && !this.isAttacking) {
         this.hero.stop();
-        this.hero.setTexture("hero").setDisplaySize(130, 130).setOrigin(0.5, 1);
+        this.hero.setTexture("kngDeath", 0); 
       }
       this.activeTraps();
       this.updateEnemies();
+      this.clampAndHandleRoomTransition(prevX, prevY);
     });
   }
 
@@ -552,19 +806,40 @@ export default class GameScene extends Phaser.Scene {
 
     const hearts = enemy.getData("hearts") as Phaser.GameObjects.Image[];
     if (hearts && hearts[hp]) {
-      hearts[hp].setVisible(false);
+        const heart = hearts[hp];
+        this.time.delayedCall(1000, () => {
+            heart.setVisible(false);
+        });
     }
 
     if (hp === 0) {
       enemy.stop();
       if (hearts) {
-        hearts.forEach(h => h.destroy());
+          hearts.forEach((h, i) => {
+              this.time.delayedCall(i * 900, () => h.destroy());
+          });
       }
 
       enemy.destroy();
       this.enemies = this.enemies.filter(e => e !== enemy);
-    }
   }
+  }
+  private getAttackHitbox(): Phaser.Geom.Rectangle {
+    if (!this.hero.frame) return new Phaser.Geom.Rectangle(this.hero.x, this.hero.y, 0, 0);
+
+    const scale = this.hero.scale;
+    const width = this.hero.frame.width * scale;
+    const height = this.hero.frame.height * scale;
+    const offsetX = this.hero.flipX ? -width * 0.5 : width * 0.5;
+    const offsetY = -height * 0.5;
+
+    return new Phaser.Geom.Rectangle(
+        this.hero.x + offsetX - width / 2,
+        this.hero.y + offsetY - height / 2,
+        width,
+        height
+    );
+}
 
   private initAttack() {
     const attackKey = this.input.keyboard!.addKey(
@@ -572,30 +847,27 @@ export default class GameScene extends Phaser.Scene {
     );
 
     attackKey.on("down", () => {
-        if (this.isAttacking) return;
-
-        this.isAttacking = true;
-
-        this.hero.setTexture("kngAttack");
-        this.hero.play("attack", true).setDisplaySize(130, 130).setOrigin(0.5, 1);
-        this.enemies.forEach(enemy => {
-        const d = Phaser.Math.Distance.Between(
-          this.hero.x,
-          this.hero.y,
-          enemy.x,
-          enemy.y
-        );
-
-        if (d < 80) {
-          this.damageEnemy(enemy);
-        }
+      if (this.isAttacking) return;
+  
+      this.isAttacking = true;
+  
+      this.hero.play("attack", true);
+  
+      const attackHitbox = this.getAttackHitbox();
+  
+      this.enemies.forEach(enemy => {
+          const enemyRect = enemy.getBounds();
+  
+          if (Phaser.Geom.Rectangle.Overlaps(attackHitbox, enemyRect)) {
+              this.damageEnemy(enemy);
+          }
       });
-    });
+  });
 
     this.hero.on("animationcomplete", (anim: Phaser.Animations.Animation) => {
         if (anim.key === "attack") {
             this.isAttacking = false;
-            this.hero.setTexture("hero").setDisplaySize(130, 130).setOrigin(0.5, 1);
+            this.hero.setTexture("kngDeath", 0);
         }
     });
   }
@@ -649,8 +921,6 @@ export default class GameScene extends Phaser.Scene {
     this.hero.stop();
 
     this.hero.setTexture("kngDeath");
-    this.hero.setScale(0.3); // ← basta questo
-    this.hero.setOrigin(0.5, 1);
     this.hero.play("death");
 
     this.cameras.main.stopFollow();
@@ -658,7 +928,6 @@ export default class GameScene extends Phaser.Scene {
     this.hero.once("animationcomplete", () => {
         const { width, height } = this.scale;
 
-        // overlay
         const overlay = this.add.rectangle(
             width / 2,
             height / 2,
@@ -669,8 +938,6 @@ export default class GameScene extends Phaser.Scene {
         );
         overlay.setScrollFactor(0);
         overlay.setDepth(200);
-
-        // GAME OVER
         const gameOverText = this.add.text(
             width / 2,
             height / 2 - 80,
@@ -703,10 +970,13 @@ export default class GameScene extends Phaser.Scene {
          .setInteractive({ useHandCursor: true });
 
         reviveBtn.on("pointerdown", () => {
-            this.scene.restart(); // ← ORA FUNZIONA
+          overlay.destroy();
+          gameOverText.destroy();
+          reviveBtn.destroy();
+          exitBtn.destroy();
+          this.reviveHero();
         });
 
-        // ESCI
         const exitBtn = this.add.text(
             width / 2,
             height / 2 + 50,
@@ -728,5 +998,23 @@ export default class GameScene extends Phaser.Scene {
         });
     });
   }
+  private reviveHero() {
+    const startRoom = this.dungeon.rooms.find(r =>
+      r.asset.includes("loginroom")
+    );
+    if (!startRoom) return;
 
+    this.currentRoom = startRoom;
+    this.hero.x = startRoom.x + startRoom.width / 2;
+    this.hero.y = startRoom.y + startRoom.height / 2;
+
+    this.isDead = false;
+    this.isAttacking = false;
+    this.hero.setTexture("kng", 0);
+
+    const hearts = this.data.get("hearts") as Phaser.GameObjects.Image[];
+    hearts.forEach(h => h.setVisible(true));
+
+    this.cameras.main.startFollow(this.hero);
+  }
 }

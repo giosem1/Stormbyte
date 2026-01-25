@@ -6,8 +6,9 @@ const itemsContainer = document.getElementById("itemsContainer") as HTMLDivEleme
 
 const itemsData: Record<MenuCategory, string[]> = {
   rooms: [
-    "public/assets/rooms/loginroom.png",
-    "public/assets/rooms/sacrificeroom.png"
+    "public/assets/rooms/sacrificeroom.png",
+    "public/assets/rooms/portal_room.png",
+    "public/assets/rooms/catacomb_room.png"
   ],
   enemies: [
     "public/assets/enemis/EvilMage.png"

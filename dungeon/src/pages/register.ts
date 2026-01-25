@@ -1,6 +1,6 @@
 import { PREVIEW_CONFIG, mountPreview, unmountPreview } from "../pages/previewanimation";
 
-type PlayerClass = "Knight" | "Mage" | "Archer" | "Thief";
+type PlayerClass = "Knight" | "Mage" | "Archer";
 
 interface Friend {
   uid: string;
@@ -22,8 +22,7 @@ interface User {
 const PREVIEW_TO_CLASS: Record<string, PlayerClass> = {
   knight: "Knight",
   mage: "Mage",
-  archer: "Archer",
-  thief: "Thief"
+  archer: "Archer"
 };
 const registerBtn = document.getElementById("register-btn") as HTMLButtonElement;
 const usernameInput = document.getElementById("new-username") as HTMLInputElement;
