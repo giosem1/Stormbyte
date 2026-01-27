@@ -33,8 +33,12 @@ export interface RoomSave {
 }
 
 export interface DungeonSave {
-  version: 1;
+   _id: string;
+  code: string;
+  name: string;
+  version: number;
   rooms: RoomSave[];
+  createdAt: string; 
 }
 
 export interface Command {

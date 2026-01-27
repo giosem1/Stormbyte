@@ -20,6 +20,8 @@ const panel = new GenericPanel(
 
 const createD = document.getElementById("create") as HTMLParagraphElement;
 const changeC = document.getElementById("change") as HTMLParagraphElement;
+const friends = document.getElementById("friends") as HTMLParagraphElement;
+const dungeons = document.getElementById("dungeon") as HTMLParagraphElement;
 const searchD = document.getElementById("search") as HTMLParagraphElement;
 const chanllengeD = document.getElementById("chanllenge") as HTMLParagraphElement;
 const exitD = document.getElementById("exit") as HTMLParagraphElement;
@@ -32,19 +34,11 @@ chanllengeD.addEventListener("click", ()=>{
   panel.show(`
     <h2 class="panel-title text-lg mb-6">Join Chamber</h2>
 
-    <input 
-      id="roomCode"
-      type="text"
-      placeholder="ENTER CODE"
-    />
+    <input id="roomCode" type="text" placeholder="ENTER CODE"/>
 
-    <button id="confirmRoom" class="panel-btn">
-      CONFIRM
-    </button>
+    <button id="confirmRoom" class="panel-btn"> CONFIRM </button>
 
-    <button id="randomRoom" class="panel-btn">
-      RANDOM ROOM
-    </button>
+    <button id="randomRoom" class="panel-btn"> RANDOM ROOM </button>
   `);
 
   document.getElementById("confirmRoom")?.addEventListener("click", () => {
@@ -122,6 +116,121 @@ changeC.addEventListener("click", () => {
       const card = document.getElementById(id);
       if (card) unmountPreview(card, cfg);
     });
+    panel.hide();
+  });
+});
+
+friends.addEventListener("click", ()=>{
+ panel.show(`
+    <h2 class="panel-title text-lg mb-4">Friends</h2>
+
+    <div class="flex flex-col space-y-3 mt-4">
+
+      <div class="flex items-center border rounded-lg p-3">
+        <img
+          src="/assets/user/placeholder.png"
+          alt="User avatar"
+          class="w-12 h-12 rounded-full object-cover mr-4"
+        />
+
+        <div class="flex flex-col">
+          <span class="text-white font-semibold text-lg">
+            Luca Rossi
+          </span>
+          <span class="text-gray-400 text-sm">
+            UID: 102938
+          </span>
+        </div>
+      </div>
+
+      <div class="flex items-center border rounded-lg p-3">
+        <img
+          src="/assets/user/placeholder.png"
+          alt="User avatar"
+          class="w-12 h-12 rounded-full object-cover mr-4"
+        />
+
+        <div class="flex flex-col">
+          <span class="text-white font-semibold text-lg">
+            Sara Bianchi
+          </span>
+          <span class="text-gray-400 text-sm">
+            UID: 847362
+          </span>
+        </div>
+      </div>
+
+      <div class="flex items-center border rounded-lg p-3">
+        <img
+          src="/assets/user/placeholder.png"
+          alt="User avatar"
+          class="w-12 h-12 rounded-full object-cover mr-4"
+        />
+
+        <div class="flex flex-col">
+          <span class="text-white font-semibold text-lg">
+            Marco Verdi
+          </span>
+          <span class="text-gray-400 text-sm">
+            UID: 554221
+          </span>
+        </div>
+      </div>
+
+    </div>
+
+    <button id="closeFriends" class="panel-btn mt-4">CLOSE</button>
+  `);
+  document.getElementById("closeFriends")?.addEventListener("click", () => {
+    panel.hide();
+  });
+
+});
+
+dungeons.addEventListener("click", ()=>{
+  panel.show(`
+    <h2 class="panel-title text-lg mb-4">My Dungeons</h2>
+
+    <div class="flex flex-col space-y-3 mt-4">
+
+      <div class="flex items-center border rounded-lg p-3">
+        <div class="flex flex-col">
+          <span class="text-white font-semibold text-lg">
+            Crypt of Shadows
+          </span>
+          <span class="text-gray-400 text-sm">
+            Dungeon ID: DNG-001
+          </span>
+        </div>
+      </div>
+
+      <div class="flex items-center border rounded-lg p-3">
+        <div class="flex flex-col">
+          <span class="text-white font-semibold text-lg">
+            Infernal Depths
+          </span>
+          <span class="text-gray-400 text-sm">
+            Dungeon ID: DNG-014
+          </span>
+        </div>
+      </div>
+
+      <div class="flex items-center border rounded-lg p-3">
+        <div class="flex flex-col">
+          <span class="text-white font-semibold text-lg">
+            Frost King Lair
+          </span>
+          <span class="text-gray-400 text-sm">
+            Dungeon ID: DNG-221
+          </span>
+        </div>
+      </div>
+
+    </div>
+
+    <button id="closeDungeons" class="panel-btn mt-4">CLOSE</button>
+  `);
+  document.getElementById("closeDungeons")?.addEventListener("click", () => {
     panel.hide();
   });
 });

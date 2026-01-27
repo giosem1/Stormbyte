@@ -4,9 +4,19 @@ export default class GenericPanel {
   private overlay: HTMLElement;
 
   constructor(panelId: string, contentId: string, overlayId: string) {
-    this.panel = document.getElementById(panelId)!;
-    this.content = document.getElementById(contentId)!;
-    this.overlay = document.getElementById(overlayId)!;
+    const panelEl = document.getElementById(panelId);
+    const contentEl = document.getElementById(contentId);
+    const overlayEl = document.getElementById(overlayId);
+
+    if (!panelEl) throw new Error(`Elemento con id "${panelId}" non trovato nel DOM`);
+    if (!contentEl) throw new Error(`Elemento con id "${contentId}" non trovato nel DOM`);
+    if (!overlayEl) throw new Error(`Elemento con id "${overlayId}" non trovato nel DOM`);
+
+    this.panel = panelEl;
+    this.content = contentEl;
+    this.overlay = overlayEl;
+    this.panel.classList.add("hidden");
+    this.overlay.classList.add("hidden");
 
     this.overlay.addEventListener("click", () => this.hide());
   }

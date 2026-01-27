@@ -1,6 +1,20 @@
 import { state, type PlacedItem, type DungeonSave, type RoomSave, type ItemSave } from "./state";
 
+const dungeonNameInput = document.getElementById(
+  "dungeon-name-input"
+) as HTMLInputElement;
+
+const codeDungeon = document.getElementById(
+  "code-label"
+) as HTMLParagraphElement;
+
 export function buildDungeonSave(): DungeonSave {
+
+  const dungeonName = dungeonNameInput.value.trim();
+  const dungeonCode = codeDungeon.textContent
+    ?.replace("Codice:", "")
+    .trim() ?? "";
+
   const rooms = state.items.filter(i => i.type === "room");
 
   const roomSaves: RoomSave[] = rooms.map(room => {
@@ -25,8 +39,12 @@ export function buildDungeonSave(): DungeonSave {
   });
 
   return {
+    _id: crypto.randomUUID(),
+    code: dungeonCode,
+    name: dungeonName,
     version: 1,
-    rooms: roomSaves
+    rooms: roomSaves,
+    createdAt: new Date().toISOString()
   };
 }
 

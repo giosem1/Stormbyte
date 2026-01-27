@@ -1,8 +1,60 @@
+import GenericPanel from "../../ui/pannel";
 import { buildDungeonSave } from "./savedungeon";
 type MenuCategory = "rooms" | "enemies" | "traps";
 
 const menuButtons = document.querySelectorAll<HTMLButtonElement>(".menu-btn");
 const itemsContainer = document.getElementById("itemsContainer") as HTMLDivElement;
+const codeDungeon = document.getElementById("code-label") as HTMLParagraphElement;
+
+window.addEventListener("DOMContentLoaded", () => {
+  const panel = new GenericPanel("panel", "panel-content", "panel-overlay");
+  const invite = document.getElementById("sent-label") as HTMLParagraphElement;
+
+  invite.addEventListener("click", () => {
+    const friendsList = [
+      { name: "Luca Rossi", uid: "102938", avatar: "/assets/user/placeholder.png" },
+      { name: "Sara Bianchi", uid: "847362", avatar: "/assets/user/placeholder.png" },
+      { name: "Marco Verdi", uid: "554221", avatar: "/assets/user/placeholder.png" }
+    ];
+
+    const friendsHTML = friendsList.map(friend => `
+      <div class="friend-row flex items-center justify-between border rounded-lg p-3">
+        <div class="flex items-center">
+          <img src="${friend.avatar}" alt="Avatar" class="w-12 h-12 rounded-full object-cover mr-4"/>
+          <div class="flex flex-col">
+            <span class="text-white font-semibold text-lg">${friend.name}</span>
+            <span class="text-gray-400 text-sm">UID: ${friend.uid}</span>
+          </div>
+        </div>
+        <button class="invite-btn text-white px-3 py-1 rounded" style="background-color: #ffcc00;">+</button>
+      </div>
+    `).join("");
+
+    panel.show(`
+      <h2 class="panel-title text-lg mb-4 text-center text-white font-bold">Invite Friends</h2>
+      <div id="invite-list" class="flex flex-col space-y-3 mt-4">
+        ${friendsHTML}
+      </div>
+      <button id="closeInvite" class="panel-btn mt-4 w-full text-center text-white font-bold">CLOSE</button>
+    `);
+
+    document.querySelectorAll(".invite-btn").forEach((btn, i) => {
+      const button = btn as HTMLButtonElement;
+      button.addEventListener("click", () => {
+        const friend = friendsList[i];
+        console.log(`Invito inviato a: ${friend.name} (UID: ${friend.uid})`);
+        button.textContent = "✓";
+        button.disabled = true;
+      });
+    });
+
+    document.getElementById("closeInvite")!.addEventListener("click", () => {
+      panel.hide();
+    });
+  });
+});
+
+
 
 const itemsData: Record<MenuCategory, string[]> = {
   rooms: [
@@ -47,6 +99,22 @@ function renderItems(category: MenuCategory): void {
 }
 
 
+function generateDungeonCode(): string {
+  const gameName = "Stormbyte"
+  const prefix = gameName.slice(0, 3).toUpperCase()
+  const randomNumber = Math.floor(1000 + Math.random() * 9000)
+  return `${prefix}-${randomNumber}`
+}
+
+let dungeonCode = localStorage.getItem("dungeonCode")
+
+if (!dungeonCode) {
+  dungeonCode = generateDungeonCode()
+  localStorage.setItem("dungeonCode", dungeonCode)
+}
+
+codeDungeon.textContent = `Codice: ${dungeonCode}`
+
 menuButtons.forEach(button => {
   button.addEventListener("click", () => {
 
@@ -80,7 +148,24 @@ function downloadJSON(data: object) {
 }
 
 const save = document.getElementById("save") as HTMLParagraphElement;
-save.addEventListener("click", ()=>{
+const nameInput = document.getElementById("dungeon-name-input") as HTMLInputElement;
+
+save.addEventListener("click", () => {
+  const existingError = document.getElementById("name-error");
+  if (existingError) existingError.remove();
+
+  if (!nameInput.value.trim()) {
+    const error = document.createElement("p");
+    error.id = "name-error";
+    error.textContent = "Inserisci il nome del dungeon";
+    error.style.color = "#ffd700";
+    error.style.fontSize = "0.5rem";
+    error.style.marginTop = "6px";
+
+    nameInput.parentElement!.appendChild(error);
+    return;
+  }
+
   const dungeon = buildDungeonSave();
   downloadJSON(dungeon);
-})
+});

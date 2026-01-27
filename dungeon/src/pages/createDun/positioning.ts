@@ -15,6 +15,21 @@ const SCALE_RULES: Record<ItemType, number> = {
   enemy: 1.2,
   trap: 1.8
 };
+const STORAGE_KEY = "canvas-items";
+
+function saveItemsToStorage() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.items));
+}
+
+function loadItemsFromStorage(): PlacedItem[] {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw) as PlacedItem[];
+  } catch {
+    return [];
+  }
+}
 
 class AddItemCommand implements Command {
   private item: PlacedItem;
@@ -28,11 +43,13 @@ class AddItemCommand implements Command {
   execute() {
     state.items.push(this.item);
     canvas.appendChild(this.element);
+    saveItemsToStorage();
   }
 
   undo() {
     state.items = state.items.filter(i => i.id !== this.item.id);
     this.element.remove();
+    saveItemsToStorage();
   }
 }
 
@@ -153,7 +170,7 @@ document.addEventListener("mousedown", (e) => {
   const type = getItemType(img.src);
   const scale = SCALE_RULES[type];
 
-  const card = img.parentElement; // l'elemento <div> della card
+  const card = img.parentElement;
   let labelText = "";
   if (card) {
     const label = card.querySelector<HTMLSpanElement>("span#itemName");
@@ -273,6 +290,7 @@ window.addEventListener("mouseup", () => {
   }
 
   draggingImage = null;
+  saveItemsToStorage();
 });
 
 function isOverlapping(a: PlacedItem, b: PlacedItem): boolean {
@@ -318,6 +336,44 @@ function setActiveRoom(item: PlacedItem) {
   if (el) el.classList.add("active-"+item.type);
 }
 
+function clearDungeonEditorState() {
+  state.items = [];
+  state.undoStack.length = 0;
+  state.redoStack.length = 0;
+
+  canvas.innerHTML = "";
+  localStorage.removeItem("canvas-items");
+  localStorage.removeItem("dungeonCode");
+}
+
+const backArrow = document.getElementById("back-arrow");
+backArrow?.addEventListener("click", () => { clearDungeonEditorState(); });
+
 window.addEventListener("DOMContentLoaded", () => {
-  spawnDefaultRoom();
+  const savedItems = loadItemsFromStorage();
+
+  if (savedItems.length === 0) {
+    spawnDefaultRoom();
+    return;
+  }
+
+  savedItems.forEach(item => {
+    const img = document.createElement("img");
+    img.src = item.src;
+    img.classList.add("absolute", "select-none", `${item.type}-dynamic`);
+    img.draggable = false;
+
+    img.style.width = `${item.width}px`;
+    img.style.height = `${item.height}px`;
+    img.style.left = `${item.x}px`;
+    img.style.top = `${item.y}px`;
+
+    img.dataset.id = item.id;
+
+    canvas.appendChild(img);
+    state.items.push(item);
+    enableDrag(img, item);
+  });
+
+  updateCanvas();
 });
