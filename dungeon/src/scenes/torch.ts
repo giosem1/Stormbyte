@@ -29,10 +29,22 @@ export class Torch extends Phaser.Scene
         repeat: -1
     });
 
+        const screenWidth = this.scale.width;
+        const screenHeight = this.scale.height;
 
         const positions: Record<string, { boxHalfWidth: number; gap: number, centerX: number, y: number }> = {
-            "login.html": { boxHalfWidth: 190, gap: 90, centerX: this.scale.width / 2, y: this.scale.height / 2},
-            "homepage.html": { boxHalfWidth: 290, gap: 90, centerX: this.scale.width / 1.45 , y: this.scale.height / 4.7}
+            "login.html": { 
+                boxHalfWidth: screenWidth * 0.15,
+                gap: screenWidth * 0.07,
+                centerX: screenWidth / 2,
+                y: screenHeight / 2
+            },
+            "homepage.html": { 
+                boxHalfWidth: screenWidth * 0.18,
+                gap: screenWidth * 0.05,
+                centerX: screenWidth * 0.68,
+                y: screenHeight / 4.7
+            }
         };
 
         const { boxHalfWidth, gap, centerX, y} =

@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import GenericPanel from "../ui/pannel";
 
 type ItemType = "room" | "enemy" | "trap";
 
@@ -65,6 +66,7 @@ interface RoomSave {
 }
 
 interface DungeonSave {
+  name: string;
   version: number;
   rooms: RoomSave[];
 }
@@ -186,7 +188,75 @@ export default class GameScene extends Phaser.Scene {
     exitButton.on("pointerdown", () => {
       window.location.href = 'homepage.html';
     });
-    
+    exitButton.on("pointerover", () => {
+      exitButton.setColor("#facc15");
+      exitButton.setFontSize(40)
+    });
+    exitButton.on("pointerout", () => {
+      exitButton.setColor("#ffffff");
+      exitButton.setFontSize(30)
+    });
+
+    const inviteText = this.add.text(exitButton.x + 30, exitButton.y + 40, "Invite", {
+      fontFamily: '"Press Start 2P"',
+      fontSize: '20px',
+      color: '#ffffff'
+    });
+    inviteText.setOrigin(0.5, 0.5);
+    inviteText.setScrollFactor(0);
+    inviteText.setDepth(100);
+    inviteText.setInteractive();
+    inviteText.on("pointerover", () => {
+      inviteText.setColor("#facc15");
+      inviteText.setFontSize(25)
+    });
+    inviteText.on("pointerout", () => {
+      inviteText.setColor("#ffffff");
+      inviteText.setFontSize(20)
+    });
+    inviteText.on("pointerdown", () => {
+      const panel = new GenericPanel("panel", "panel-content", "panel-overlay");
+
+      const friendsList = [
+          { name: "Luca Rossi", uid: "102938", avatar: "/assets/user/placeholder.png" },
+          { name: "Sara Bianchi", uid: "847362", avatar: "/assets/user/placeholder.png" },
+          { name: "Marco Verdi", uid: "554221", avatar: "/assets/user/placeholder.png" }
+      ];
+
+      const friendsHTML = friendsList.map(friend => `
+          <div class="friend-row flex items-center justify-between border rounded-lg p-3">
+              <div class="flex items-center">
+                  <img src="${friend.avatar}" alt="Avatar" class="w-12 h-12 rounded-full object-cover mr-4"/>
+                  <div class="flex flex-col">
+                      <span class="text-white font-semibold text-lg">${friend.name}</span>
+                      <span class="text-gray-400 text-sm">UID: ${friend.uid}</span>
+                  </div>
+              </div>
+              <button class="invite-btn text-white px-3 py-1 rounded" style="background-color: #ffcc00;">+</button>
+          </div>
+      `).join("");
+
+      panel.show(`
+          <h2 class="panel-title text-lg mb-4 text-center text-white font-bold">Invite Friends</h2>
+          <div id="invite-list" class="flex flex-col space-y-3 mt-4">
+              ${friendsHTML}
+          </div>
+          <button id="closeInvite" class="panel-btn mt-4 w-full text-center text-white font-bold">CLOSE</button>
+      `);
+      document.querySelectorAll(".invite-btn").forEach((btn, i) => {
+          const button = btn as HTMLButtonElement;
+          button.addEventListener("click", () => {
+              const friend = friendsList[i];
+              console.log(`Invito inviato a: ${friend.name} (UID: ${friend.uid})`);
+              button.textContent = "✓";
+              button.disabled = true;
+          });
+      });
+      document.getElementById("closeInvite")!.addEventListener("click", () => {
+          panel.hide();
+      });
+    });
+
     if (!this.dungeon) {
       throw new Error("Dungeon JSON non caricato");
     }
@@ -224,32 +294,42 @@ export default class GameScene extends Phaser.Scene {
 
   private createUI() {
     const { width, height } = this.scale;
+
+    // Heart Container
     const maxHealth = 10;
     const heartSpacing = 4; 
     const heartSize = 32; 
 
     this.load.once("complete", () => {
-        const healthContainer = this.add.container(width / 2, height - 50);
+        const healthContainer = this.add.container(width / 2, 50);
         healthContainer.setScrollFactor(0);
         healthContainer.setDepth(100);
 
         const hearts: Phaser.GameObjects.Image[] = [];
 
         for (let i = 0; i < maxHealth; i++) {
-            const heart = this.add.image(
-                -((maxHealth - 1) * (heartSize + heartSpacing)) / 2 + i * (heartSize + heartSpacing),
-                0,
-                "heart"
-            );
+            const heart = this.add.image(-((maxHealth - 1) * (heartSize + heartSpacing)) / 2 + i * (heartSize + heartSpacing), 0, "heart");
             heart.setOrigin(0, 0);
             heart.setDisplaySize(heartSize, heartSize);
             healthContainer.add(heart);
             hearts.push(heart);
         }
 
+        if (this.dungeon && this.dungeon.name) {
+          console.log(this.dungeon.name)
+            const dungeonNameText = this.add.text(0, -heartSize, this.dungeon.name, {
+                fontFamily: '"Press Start 2P"',
+                fontSize: '20px',
+                color: '#ffffff'
+            }).setOrigin(0.40, 0);
+            healthContainer.add(dungeonNameText);
+        }
+
         this.data.set("hearts", hearts);
         this.data.set("maxHealth", maxHealth);
     });
+
+    // Inventory Container
     const slotSize = 64;
     const padding = 10;
 
