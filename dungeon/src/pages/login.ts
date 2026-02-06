@@ -3,7 +3,11 @@ const usernameInput = document.getElementById("username") as HTMLInputElement;
 const passwordInput = document.getElementById("password") as HTMLInputElement;
 const registerLink = document.getElementById("register-link") as HTMLSpanElement;
 
-loginBtn.addEventListener("click", () => {
+interface UserLogin{
+  username: string,
+  password: string
+}
+loginBtn.addEventListener("click", async () => {
   const username = usernameInput.value.trim();
   const password = passwordInput.value.trim();
 
@@ -12,9 +16,33 @@ loginBtn.addEventListener("click", () => {
     return;
   }
 
-  console.log(`Login effettuato da ${username}`);
-  window.location.href = "homepage.html";
+   try {
+    const userData = await loginUser({ username, password });
+    localStorage.setItem("user", JSON.stringify(userData));
+    window.location.href = "homepage.html";
+
+  } catch (err: any) {
+    alert(err.message || "Errore login");
+  }
 });
+
+export async function loginUser(data: UserLogin) {
+  const response = await fetch("http://localhost:7071/api/login", {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.error || "Errore di accesso");
+  }
+
+  return result;
+}
 
 registerLink.addEventListener("click", () => {
   window.location.href = "register.html";

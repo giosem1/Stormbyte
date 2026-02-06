@@ -1,6 +1,8 @@
 import Phaser from "phaser";
 import { Torch } from "../scenes/torch";
 import GenericPanel from "../ui/pannel";
+import type { User } from "../types/types";
+
 import { PREVIEW_CONFIG, mountPreview, unmountPreview } from "../pages/previewanimation";
 const config = {
    type: Phaser.AUTO,
@@ -18,6 +20,20 @@ const panel = new GenericPanel(
   "overlay"
 );
 
+const rawUser = localStorage.getItem("user");
+
+if (!rawUser) {
+  window.location.href = "login.html";
+  throw new Error("User non autenticato");
+}
+
+const user: User = JSON.parse(rawUser);
+const username = document.getElementById("username") as HTMLParagraphElement;
+const uid = document.getElementById("usercode") as HTMLParagraphElement; 
+username.textContent = user.username
+uid.textContent = user.uid
+
+
 const createD = document.getElementById("create") as HTMLParagraphElement;
 const changeC = document.getElementById("change") as HTMLParagraphElement;
 const friends = document.getElementById("friends") as HTMLParagraphElement;
@@ -27,6 +43,7 @@ const chanllengeD = document.getElementById("chanllenge") as HTMLParagraphElemen
 const exitD = document.getElementById("exit") as HTMLParagraphElement;
 
 createD.addEventListener("click", ()=>{
+  // localStorage.setItem("user", JSON.stringify(user));
   window.location.href = "createDungeon.html";
 })
 
@@ -121,69 +138,44 @@ changeC.addEventListener("click", () => {
 });
 
 friends.addEventListener("click", ()=>{
- panel.show(`
-    <h2 class="panel-title text-lg mb-4">Friends</h2>
+//  const friendsList = [
+//           { username: "Luca Rossi", uid: "102938", profileImage: "/assets/user/placeholder.png" },
+//           { username: "Sara Bianchi", uid: "847362", profileImage: "/assets/user/placeholder.png" },
+//           { username: "Marco Verdi", uid: "554221", profileImage: "/assets/user/placeholder.png" }
+//       ];
+  const friendsList = user.friends
+      const friendsHTML = friendsList.map(friend => `
+          <div class="friend-row flex items-center justify-between border rounded-lg p-3">
+              <div class="flex items-center">
+                  <img src="${friend.profileImage}" alt="Avatar" class="w-12 h-12 rounded-full object-cover mr-4"/>
+                  <div class="flex flex-col">
+                      <span class="text-white font-semibold text-lg">${friend.username}</span>
+                      <span class="text-gray-400 text-sm">UID: ${friend.uid}</span>
+                  </div>
+              </div>
+              <button class="invite-btn text-white px-3 py-1 rounded" style="background-color: #ffcc00;">+</button>
+          </div>
+      `).join("");
 
-    <div class="flex flex-col space-y-3 mt-4">
-
-      <div class="flex items-center border rounded-lg p-3">
-        <img
-          src="/assets/user/placeholder.png"
-          alt="User avatar"
-          class="w-12 h-12 rounded-full object-cover mr-4"
-        />
-
-        <div class="flex flex-col">
-          <span class="text-white font-semibold text-lg">
-            Luca Rossi
-          </span>
-          <span class="text-gray-400 text-sm">
-            UID: 102938
-          </span>
-        </div>
-      </div>
-
-      <div class="flex items-center border rounded-lg p-3">
-        <img
-          src="/assets/user/placeholder.png"
-          alt="User avatar"
-          class="w-12 h-12 rounded-full object-cover mr-4"
-        />
-
-        <div class="flex flex-col">
-          <span class="text-white font-semibold text-lg">
-            Sara Bianchi
-          </span>
-          <span class="text-gray-400 text-sm">
-            UID: 847362
-          </span>
-        </div>
-      </div>
-
-      <div class="flex items-center border rounded-lg p-3">
-        <img
-          src="/assets/user/placeholder.png"
-          alt="User avatar"
-          class="w-12 h-12 rounded-full object-cover mr-4"
-        />
-
-        <div class="flex flex-col">
-          <span class="text-white font-semibold text-lg">
-            Marco Verdi
-          </span>
-          <span class="text-gray-400 text-sm">
-            UID: 554221
-          </span>
-        </div>
-      </div>
-
-    </div>
-
-    <button id="closeFriends" class="panel-btn mt-4">CLOSE</button>
-  `);
-  document.getElementById("closeFriends")?.addEventListener("click", () => {
-    panel.hide();
-  });
+      panel.show(`
+          <h2 class="panel-title text-lg mb-4 text-center text-white font-bold">Invite Friends</h2>
+          <div id="invite-list" class="flex flex-col space-y-3 mt-4">
+              ${friendsHTML}
+          </div>
+          <button id="closeInvite" class="panel-btn mt-4 w-full text-center text-white font-bold">CLOSE</button>
+      `);
+      document.querySelectorAll(".invite-btn").forEach((btn, i) => {
+          const button = btn as HTMLButtonElement;
+          button.addEventListener("click", () => {
+              const friend = friendsList[i];
+              console.log(`Invito inviato a: ${friend.username} (UID: ${friend.uid})`);
+              button.textContent = "✓";
+              button.disabled = true;
+          });
+      });
+      document.getElementById("closeInvite")!.addEventListener("click", () => {
+          panel.hide();
+      });
 
 });
 

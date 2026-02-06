@@ -1,3 +1,4 @@
+import type { Dungeon } from "../../types/types";
 import { state, type PlacedItem, type DungeonSave, type RoomSave, type ItemSave } from "./state";
 
 const dungeonNameInput = document.getElementById(
@@ -8,7 +9,8 @@ const codeDungeon = document.getElementById(
   "code-label"
 ) as HTMLParagraphElement;
 
-export function buildDungeonSave(): DungeonSave {
+//TODO: Add collaborators when implemnts SignalR
+export function buildDungeonSave(owner: string): DungeonSave {
 
   const dungeonName = dungeonNameInput.value.trim();
   const dungeonCode = codeDungeon.textContent
@@ -38,14 +40,45 @@ export function buildDungeonSave(): DungeonSave {
     };
   });
 
+  const _id= crypto.randomUUID()
+  const code = dungeonCode
+  const name = dungeonName
+  const collaborators: string[]= []
+  const dungeon: Dungeon ={
+    _id,
+    code,
+    name,
+    owner,
+    collaborators
+  }
+
+  saveDungeon(dungeon)
   return {
-    _id: crypto.randomUUID(),
-    code: dungeonCode,
-    name: dungeonName,
+    _id,
+    code,
+    name,
     version: 1,
     rooms: roomSaves,
     createdAt: new Date().toISOString()
   };
+}
+
+export async function saveDungeon(data: Dungeon) {
+  const response = await fetch("http://localhost:7071/api/save_dungeon", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.error || "Errore di salvataggio");
+  }
+
+  return result;
 }
 
 function toItemSave(item: PlacedItem, room: PlacedItem): ItemSave {

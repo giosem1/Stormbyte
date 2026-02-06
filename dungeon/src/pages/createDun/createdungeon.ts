@@ -1,3 +1,4 @@
+import type { User } from "../../types/types";
 import GenericPanel from "../../ui/pannel";
 import { buildDungeonSave } from "./savedungeon";
 type MenuCategory = "rooms" | "enemies" | "traps";
@@ -6,23 +7,28 @@ const menuButtons = document.querySelectorAll<HTMLButtonElement>(".menu-btn");
 const itemsContainer = document.getElementById("itemsContainer") as HTMLDivElement;
 const codeDungeon = document.getElementById("code-label") as HTMLParagraphElement;
 
+
+const rawUser = localStorage.getItem("user")
+if (!rawUser) {
+  window.location.href = "login.html";
+  throw new Error("User non autenticato");
+}
+
+const user: User = JSON.parse(rawUser)
+
 window.addEventListener("DOMContentLoaded", () => {
   const panel = new GenericPanel("panel", "panel-content", "panel-overlay");
   const invite = document.getElementById("sent-label") as HTMLParagraphElement;
 
   invite.addEventListener("click", () => {
-    const friendsList = [
-      { name: "Luca Rossi", uid: "102938", avatar: "/assets/user/placeholder.png" },
-      { name: "Sara Bianchi", uid: "847362", avatar: "/assets/user/placeholder.png" },
-      { name: "Marco Verdi", uid: "554221", avatar: "/assets/user/placeholder.png" }
-    ];
+    const friendsList = user.friends
 
     const friendsHTML = friendsList.map(friend => `
       <div class="friend-row flex items-center justify-between border rounded-lg p-3">
         <div class="flex items-center">
-          <img src="${friend.avatar}" alt="Avatar" class="w-12 h-12 rounded-full object-cover mr-4"/>
+          <img src="${friend.profileImage}" alt="Avatar" class="w-12 h-12 rounded-full object-cover mr-4"/>
           <div class="flex flex-col">
-            <span class="text-white font-semibold text-lg">${friend.name}</span>
+            <span class="text-white font-semibold text-lg">${friend.username}</span>
             <span class="text-gray-400 text-sm">UID: ${friend.uid}</span>
           </div>
         </div>
@@ -42,7 +48,7 @@ window.addEventListener("DOMContentLoaded", () => {
       const button = btn as HTMLButtonElement;
       button.addEventListener("click", () => {
         const friend = friendsList[i];
-        console.log(`Invito inviato a: ${friend.name} (UID: ${friend.uid})`);
+        console.log(`Invito inviato a: ${friend.username} (UID: ${friend.uid})`);
         button.textContent = "✓";
         button.disabled = true;
       });
@@ -166,6 +172,6 @@ save.addEventListener("click", () => {
     return;
   }
 
-  const dungeon = buildDungeonSave();
+  const dungeon = buildDungeonSave(user.uid);
   downloadJSON(dungeon);
 });

@@ -2,21 +2,18 @@ import { PREVIEW_CONFIG, mountPreview, unmountPreview } from "../pages/previewan
 
 type PlayerClass = "Knight" | "Mage" | "Archer";
 
-interface Friend {
-  uid: string;
-  username: string;
-  profileImage: string;
-}
+// interface Friend {
+//   uid: string;
+//   username: string;
+//   profileImage: string;
+// }
 
 interface User {
   uid: string;
   username: string;
-  passwordHash: string;
+  password: string;
+  class: string;
   profileImage: string;
-  friends: Friend[];
-  dungeons: string[];
-  class: PlayerClass;
-  inventory: string[];
 }
 
 const PREVIEW_TO_CLASS: Record<string, PlayerClass> = {
@@ -161,24 +158,37 @@ registerBtn.addEventListener("click", async () => {
 
   if (!isUsernameValid || !isPasswordValid || !isClassValid) return;
   if (selectedClass === null || selectedPreviewId === null) return;
-  const passwordHash = await hashPassword(password);
+  
 
   const newUser: User = {
     uid: generateUID(),
     username,
-    passwordHash,
+    password,
     profileImage: `/assets/heroes/${selectedPreviewId}.png`,
-    friends: [],
-    dungeons: [],
-    class: selectedClass,
-    inventory: []
+    class: selectedClass.toString(),
   };
 
-  users.push(newUser);
-  saveUsers(users);
-
+  registerUser(newUser)
   window.location.href = "login.html";
 });
+
+export async function registerUser(data: User) {
+  const response = await fetch("http://localhost:7071/api/register", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.error || "Errore di registrazione");
+  }
+
+  return result;
+}
 
 const bindings = [
   ["SelectedCavaliere", PREVIEW_CONFIG.knight],
@@ -207,24 +217,12 @@ bindings.forEach(([id, cfg]) => {
   card.addEventListener("mouseleave", () => unmountPreview(card, cfg));
 });
 
-async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-
-  return Array.from(new Uint8Array(hashBuffer))
-    .map(b => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
 function generateUID(): string {
-  return crypto.randomUUID();
+  const prefix = "SRBU";
+  const randomDigits = Math.floor(100000 + Math.random() * 900000);
+  return `${prefix}${randomDigits}`;
 }
 
 function loadUsers(): User[] {
   return JSON.parse(localStorage.getItem("users") || "[]");
-}
-
-function saveUsers(users: User[]) {
-  localStorage.setItem("users", JSON.stringify(users, null, 2));
 }
