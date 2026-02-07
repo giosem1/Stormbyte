@@ -1,20 +1,7 @@
 import { PREVIEW_CONFIG, mountPreview, unmountPreview } from "../pages/previewanimation";
+import type { User } from "../types/types";
 
 type PlayerClass = "Knight" | "Mage" | "Archer";
-
-// interface Friend {
-//   uid: string;
-//   username: string;
-//   profileImage: string;
-// }
-
-interface User {
-  uid: string;
-  username: string;
-  password: string;
-  class: string;
-  profileImage: string;
-}
 
 const PREVIEW_TO_CLASS: Record<string, PlayerClass> = {
   knight: "Knight",
@@ -158,21 +145,22 @@ registerBtn.addEventListener("click", async () => {
 
   if (!isUsernameValid || !isPasswordValid || !isClassValid) return;
   if (selectedClass === null || selectedPreviewId === null) return;
-  
+  console.log(selectedClass)
 
   const newUser: User = {
     uid: generateUID(),
     username,
     password,
     profileImage: `/assets/heroes/${selectedPreviewId}.png`,
-    class: selectedClass.toString(),
+    classe: selectedClass.toString(),
+    friends: []
   };
 
   registerUser(newUser)
   window.location.href = "login.html";
 });
 
-export async function registerUser(data: User) {
+async function registerUser(data: User) {
   const response = await fetch("http://localhost:7071/api/register", {
     method: "POST",
     headers: {

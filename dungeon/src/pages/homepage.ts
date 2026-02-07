@@ -1,9 +1,9 @@
 import Phaser from "phaser";
 import { Torch } from "../scenes/torch";
 import GenericPanel from "../ui/pannel";
-import type { User } from "../types/types";
+import { PREVIEW_TO_CLASS, type Friend, type PlayerClass, type User } from "../types/types";
 
-import { PREVIEW_CONFIG, mountPreview, unmountPreview } from "../pages/previewanimation";
+import { PREVIEW_CONFIG, mountPreview, unmountPreview } from "../pages/previewanimation"; 
 const config = {
    type: Phaser.AUTO,
    width: window.innerWidth,
@@ -27,7 +27,7 @@ if (!rawUser) {
   throw new Error("User non autenticato");
 }
 
-const user: User = JSON.parse(rawUser);
+let user: User = JSON.parse(rawUser);
 const username = document.getElementById("username") as HTMLParagraphElement;
 const uid = document.getElementById("usercode") as HTMLParagraphElement; 
 username.textContent = user.username
@@ -38,12 +38,12 @@ const createD = document.getElementById("create") as HTMLParagraphElement;
 const changeC = document.getElementById("change") as HTMLParagraphElement;
 const friends = document.getElementById("friends") as HTMLParagraphElement;
 const dungeons = document.getElementById("dungeon") as HTMLParagraphElement;
-const searchD = document.getElementById("search") as HTMLParagraphElement;
+const searchF = document.getElementById("search") as HTMLParagraphElement;
 const chanllengeD = document.getElementById("chanllenge") as HTMLParagraphElement;
 const exitD = document.getElementById("exit") as HTMLParagraphElement;
 
 createD.addEventListener("click", ()=>{
-  // localStorage.setItem("user", JSON.stringify(user));
+  localStorage.setItem("user", JSON.stringify(user));
   window.location.href = "createDungeon.html";
 })
 
@@ -58,9 +58,15 @@ chanllengeD.addEventListener("click", ()=>{
     <button id="randomRoom" class="panel-btn"> RANDOM ROOM </button>
   `);
 
-  document.getElementById("confirmRoom")?.addEventListener("click", () => {
+  document.getElementById("confirmRoom")?.addEventListener("click", async () => {
     const code = (document.getElementById("roomCode") as HTMLInputElement).value;
-    console.log("Room code:", code);
+    const response = await fetch(
+      "http://localhost:7071/api/checkdungeon?code="+code
+    );
+
+    const dungeon = await response.json();
+    localStorage.setItem("user", JSON.stringify(user));
+    localStorage.setItem("dungeon", JSON.stringify(dungeon));
     window.location.href = "dungeonGame.html";
 
   });
@@ -119,15 +125,35 @@ changeC.addEventListener("click", () => {
     ["SelectedMago", PREVIEW_CONFIG.mage],
     ["SelectedArciere", PREVIEW_CONFIG.archer]
   ] as const;
+  let selectedClass: PlayerClass
 
   bindings.forEach(([id, cfg]) => {
     const card = document.getElementById(id);
     if (!card) return;
-
+    
     card.addEventListener("mouseenter", () => mountPreview(card, cfg));
     card.addEventListener("mouseleave", () => unmountPreview(card, cfg));
-  });
+    card.addEventListener("click", () => {
+      selectedClass = PREVIEW_TO_CLASS[cfg.id];
+      document
+        .querySelectorAll("[id^='Selected']")
+        .forEach(el => {
+          el.classList.remove("border-yellow-400", "border-red-500");
+        });
 
+      card.classList.add("border-yellow-400");
+      });
+  });
+  document.getElementById("confirmClass")?.addEventListener("click", ()=>{
+    if (!selectedClass) {
+    document
+      .querySelectorAll("[id^='Selected']")
+      .forEach(el => el.classList.add("border-red-500"));
+    return;
+  }
+    updateClass(selectedClass, user.uid)
+    panel.hide()
+  });
   document.getElementById("cancelClass")?.addEventListener("click", () => {
     bindings.forEach(([id, cfg]) => {
       const card = document.getElementById(id);
@@ -137,12 +163,26 @@ changeC.addEventListener("click", () => {
   });
 });
 
+async function updateClass(selectedClass: string, UserId: string){
+  try {
+    const res = await fetch(
+      `http://localhost:7071/api/class`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ selectedClass, UserId })
+      }
+    );
+    if (!res.ok) throw new Error();
+    const updatedUser: User = await res.json();
+    user = updatedUser
+  } catch {
+    alert("Errore invio richiesta");
+  }
+}
+
 friends.addEventListener("click", ()=>{
-//  const friendsList = [
-//           { username: "Luca Rossi", uid: "102938", profileImage: "/assets/user/placeholder.png" },
-//           { username: "Sara Bianchi", uid: "847362", profileImage: "/assets/user/placeholder.png" },
-//           { username: "Marco Verdi", uid: "554221", profileImage: "/assets/user/placeholder.png" }
-//       ];
+  console.log(user.friends)
   const friendsList = user.friends
       const friendsHTML = friendsList.map(friend => `
           <div class="friend-row flex items-center justify-between border rounded-lg p-3">
@@ -153,7 +193,6 @@ friends.addEventListener("click", ()=>{
                       <span class="text-gray-400 text-sm">UID: ${friend.uid}</span>
                   </div>
               </div>
-              <button class="invite-btn text-white px-3 py-1 rounded" style="background-color: #ffcc00;">+</button>
           </div>
       `).join("");
 
@@ -164,15 +203,6 @@ friends.addEventListener("click", ()=>{
           </div>
           <button id="closeInvite" class="panel-btn mt-4 w-full text-center text-white font-bold">CLOSE</button>
       `);
-      document.querySelectorAll(".invite-btn").forEach((btn, i) => {
-          const button = btn as HTMLButtonElement;
-          button.addEventListener("click", () => {
-              const friend = friendsList[i];
-              console.log(`Invito inviato a: ${friend.username} (UID: ${friend.uid})`);
-              button.textContent = "✓";
-              button.disabled = true;
-          });
-      });
       document.getElementById("closeInvite")!.addEventListener("click", () => {
           panel.hide();
       });
@@ -231,14 +261,14 @@ exitD.addEventListener("click", ()=>{
   window.location.href = "login.html";
 })
 
-searchD.addEventListener("click", () => {
+searchF.addEventListener("click", () => {
 
-  if (searchD.querySelector(".search-wrapper")) {
+  if (searchF.querySelector(".search-wrapper")) {
     return;
   }
 
-  searchD.style.display = "inline-flex";
-  searchD.style.alignItems = "center";
+  searchF.style.display = "inline-flex";
+  searchF.style.alignItems = "center";
 
   const wrapper = document.createElement("div");
   wrapper.className = "search-wrapper small";
@@ -253,12 +283,28 @@ searchD.addEventListener("click", () => {
   icon.alt = "Cerca";
   icon.draggable = false;
 
-  const doSearch = () => {
+  const doSearch = async () => {
+    const prefix = "SRBU";
     const value = input.value.trim();
-    if (!value) return;
-    console.log("Ricerca dungeon:", value);
-  };
 
+    try{
+      const res = await fetch(
+        'http://localhost:7071/api/search_friend?code='+prefix+value
+      );
+      if (!res.ok) {
+      throw new Error("Amico non trovato");
+    }
+
+    const friend = await res.json();
+    showFriendPanel(friend);
+
+    } catch(err) {
+    console.error(err);
+    alert("Utente non trovato");
+    }
+    
+  };
+  
   icon.addEventListener("click", doSearch);
 
   input.addEventListener("keydown", (e) => {
@@ -273,7 +319,81 @@ searchD.addEventListener("click", () => {
   wrapper.appendChild(input);
   wrapper.appendChild(icon);
 
-  searchD.appendChild(wrapper);
+  searchF.appendChild(wrapper);
 
   input.focus();
 });
+
+function showFriendPanel(friend: Friend) {
+  panel.show(`
+    <h2 class="panel-title text-lg mb-4">Friend Found</h2>
+
+    <div class="flex items-center border rounded-lg p-3 gap-4">
+      <img 
+        src="/assets/user/placeholder.png" 
+        alt="${friend.username}"
+        class="w-14 h-14 rounded-full"
+        draggable="false"
+      />
+
+      <div class="flex flex-col flex-1">
+        <span class="text-white font-semibold text-lg">
+          ${friend.username}
+        </span>
+        <span class="text-gray-400 text-sm">
+          Code: ${friend.uid}
+        </span>
+      </div>
+
+      <button 
+        id="sendFriendRequest"
+        class="panel-btn"
+      >
+        Invia amicizia
+      </button>
+    </div>
+
+    <button id="closeFriendPanel" class="panel-btn mt-4">
+      CLOSE
+    </button>
+  `);
+
+  document
+    .getElementById("closeFriendPanel")
+    ?.addEventListener("click", () => panel.hide());
+
+  document
+    .getElementById("sendFriendRequest")
+    ?.addEventListener("click", () => {
+      sendFriendRequest(friend, user.uid);
+    });
+}
+
+async function sendFriendRequest(friend: Friend, UserId: String) {
+  try {
+    const res = await fetch(
+      `http://localhost:7071/api/send_request`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ friend, UserId })
+      }
+    );
+    //TODO: user friends list update in realtime
+    if (!res.ok) throw new Error();
+    const updatedUser: User = await res.json();
+    user = updatedUser
+    panel.show(`
+      <h2 class="panel-title text-lg mb-4">Success</h2>
+      <p class="text-gray-400">Friend request sent</p>
+      <button class="panel-btn mt-4" id="closeSuccess">CLOSE</button>
+    `);
+
+    document
+      .getElementById("closeSuccess")
+      ?.addEventListener("click", () => panel.hide());
+
+  } catch {
+    alert("Errore invio richiesta");
+  }
+}

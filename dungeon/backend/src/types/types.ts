@@ -7,8 +7,8 @@ export interface Frined {
 export interface User {
   uid: string;
   username: string;
-  password: string;
-  class: string;
+  passwordHash: string;
+  classe: string;
   profileImage?: string;
   friends: Frined[];
   inventory: any[];

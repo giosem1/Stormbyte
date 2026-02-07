@@ -7,7 +7,7 @@ export interface User {
     uid: string,
     username: string,
     password: string,
-    class: string,
+    classe: string,
     profileImage?: string,
     friends: Friend[]
     inventory?: any[],
@@ -92,3 +92,10 @@ export interface DungeonSave {
   version: number;
   rooms: RoomSave[];
 }
+
+export type PlayerClass = "Knight" | "Mage" | "Archer";
+export const PREVIEW_TO_CLASS: Record<string, PlayerClass> = {
+  knight: "Knight",
+  mage: "Mage",
+  archer: "Archer"
+};

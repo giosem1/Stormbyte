@@ -28,14 +28,20 @@ loginBtn.addEventListener("click", async () => {
 
 export async function loginUser(data: UserLogin) {
   const response = await fetch("http://localhost:7071/api/login", {
-    method: "GET",
+    method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify(data)
   });
 
-  const result = await response.json();
+  const text = await response.text();
+
+  if (!text) {
+    throw new Error("Risposta vuota dal server");
+  }
+
+  const result = JSON.parse(text);
 
   if (!response.ok) {
     throw new Error(result.error || "Errore di accesso");
