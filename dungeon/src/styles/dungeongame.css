@@ -1,0 +1,87 @@
+.inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 64px);
+  grid-gap: 12px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.inventory-slot {
+  width: 64px;
+  height: 64px;
+  background-color: #7b5e57;
+  border: 2px solid black;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.inventory-item {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+/*Pannel*/
+#overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 5;
+}
+
+#generic-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+
+  padding: 40px 50px;
+  background: rgba(10, 10, 10, 0.9);
+  border: 3px solid #4a4a4a;
+  border-radius: 10px;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
+  text-align: center;
+
+  width: fit-content;
+  min-width: 350px;
+  max-width: 90%;
+
+  box-sizing: border-box;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+#panel-content {
+  width: max-content;
+}
+
+.hidden {
+  display: none;
+}
+
+.panel-title {
+  color: #ffd700;
+  text-shadow: 0 0 6px rgba(255, 215, 0, 0.6);
+  font-family: 'Press Start 2P', monospace;
+}
+
+button.panel-btn {
+  width: calc(100% - 20px);
+  padding: 15px;
+  background: #007bff;
+  border: none;
+  border-radius: 5px;
+  color: white;
+  font-size: 0.9em;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background-color 0.3s ease;
+  font-family: 'Press Start 2P', monospace;
+}
+
+button.panel-btn:hover {
+  background-color: #0056b3;
+}

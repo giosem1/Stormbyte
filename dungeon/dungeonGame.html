@@ -7,12 +7,14 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <title>Game</title>
   <link rel="stylesheet" href="./src/styles/createdungeon.css" type="text/css">
+  <link rel="stylesheet" href="./src/styles/dungeongame.css" type="text/css">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 <body>
   <script type="module" src="src/pages/game.ts"></script>
 
-    <div id="panel" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+  <div id="overlay" class="hidden"></div>
+    <div id="generic-panel" class="hidden">
       <div id="panel-content" class=" p-6 rounded-lg"></div>
     </div>
 

@@ -1,5 +1,5 @@
-import type { Dungeon } from "../../types/types";
-import { state, type PlacedItem, type DungeonSave, type RoomSave, type ItemSave } from "./state";
+import type { Dungeon, RoomSave, TrapSave, ItemSave} from "../../types/types";
+import { state, type PlacedItem, type DungeonSave } from "./state";
 
 const dungeonNameInput = document.getElementById(
   "dungeon-name-input"
@@ -20,13 +20,14 @@ export function buildDungeonSave(owner: string): DungeonSave {
   const rooms = state.items.filter(i => i.type === "room");
 
   const roomSaves: RoomSave[] = rooms.map(room => {
-    const enemies = state.items
-      .filter(i => i.type === "enemy" && isInside(i, room))
-      .map(i => toItemSave(i, room));
+   const enemies = state.items
+    .filter(i => i.type === "enemy" && isInside(i, room))
+    .map(i => toItemSave(i, room));
 
-    const traps = state.items
-      .filter(i => i.type === "trap" && isInside(i, room))
-      .map(i => toItemSave(i, room));
+  const traps: TrapSave[] = state.items
+    .filter(i => i.type === "trap" && isInside(i, room))
+    .map(i => ({ ...toItemSave(i, room), name: i.name as "Spike" | "Fire" | "BearTrap" }));
+
 
     return {
       id: room.id,
@@ -44,12 +45,13 @@ export function buildDungeonSave(owner: string): DungeonSave {
   const code = dungeonCode
   const name = dungeonName
   const collaborators: string[]= []
-  const dungeon: Dungeon ={
+  const dungeon: Dungeon = {
     _id,
     code,
     name,
     owner,
-    collaborators
+    collaborators,
+    rooms: roomSaves
   }
 
   saveDungeon(dungeon)

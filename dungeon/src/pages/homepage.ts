@@ -21,6 +21,7 @@ const panel = new GenericPanel(
 );
 
 const rawUser = localStorage.getItem("user");
+const notifications: any[] = [];
 
 if (!rawUser) {
   window.location.href = "login.html";
@@ -32,6 +33,106 @@ const username = document.getElementById("username") as HTMLParagraphElement;
 const uid = document.getElementById("usercode") as HTMLParagraphElement; 
 username.textContent = user.username
 uid.textContent = user.uid
+
+const notificationBell = Object.assign(document.createElement("img"), {
+  src: "/assets/icons/bell.png",
+  id: "notificationBell",
+  style: `
+    position: fixed;
+    top: 30px;
+    right: 30px;
+    width: 100px;
+    height: 100px;
+    cursor: pointer;
+    z-index: 1000;
+  `
+});
+document.body.appendChild(notificationBell);
+
+notificationBell.addEventListener("click", () => {
+  if (notifications.length === 0) {
+    panel.show(`
+      <h2 class="panel-title text-lg mb-4">Notify</h2>
+      <p class="text-gray-400">No notifications.</p>
+      <button id="closeNotifications" class="panel-btn mt-4">CLOSE</button>
+    `);
+
+    document.getElementById("closeNotifications")
+      ?.addEventListener("click", () => panel.hide());
+
+    return;
+  }
+
+  const notificationsHTML = notifications.map((n, index) => {
+
+    if (n.type === "friend_request") {
+      return `
+        <div class="flex flex-col border rounded-lg p-3 mb-2">
+          <span class="text-white font-semibold">
+            ${n.fromUsername} ti ha inviato una richiesta di amicizia
+          </span>
+
+          <div class="flex gap-2 mt-2">
+            <button class="panel-btn accept" data-index="${index}">
+              Accetta
+            </button>
+
+            <button class="panel-btn reject" data-index="${index}">
+              Rifiuta
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    return "";
+  }).join("");
+
+  panel.show(`
+    <h2 class="panel-title text-lg mb-4">Notifiche</h2>
+    ${notificationsHTML}
+    <button id="closeNotifications" class="panel-btn mt-4">CLOSE</button>
+  `);
+
+  document.getElementById("closeNotifications")
+    ?.addEventListener("click", () => panel.hide());
+
+  document.querySelectorAll(".accept").forEach(btn => {
+    btn.addEventListener("click", async (e: any) => {
+      const index = e.target.dataset.index;
+      const notif = notifications[index];
+
+      await acceptFriendRequest(notif.fromUid);
+
+      notifications.splice(index, 1);
+      panel.hide();
+    });
+  });
+  document.querySelectorAll(".reject").forEach(btn => {
+    btn.addEventListener("click", (e: any) => {
+      const index = e.target.dataset.index;
+      notifications.splice(index, 1);
+      panel.hide();
+    });
+  });
+});
+
+async function acceptFriendRequest(fromUid: string) {
+  try {
+    await fetch("http://localhost:7071/api/accept_request", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fromUid,
+        UserId: user.uid
+      })
+    });
+
+  } catch {
+    alert("Errore accettazione richiesta");
+  }
+}
+
 
 
 const createD = document.getElementById("create") as HTMLParagraphElement;
@@ -60,8 +161,9 @@ chanllengeD.addEventListener("click", ()=>{
 
   document.getElementById("confirmRoom")?.addEventListener("click", async () => {
     const code = (document.getElementById("roomCode") as HTMLInputElement).value;
+    const dungCode="STO-"+code
     const response = await fetch(
-      "http://localhost:7071/api/checkdungeon?code="+code
+      "http://localhost:7071/api/retrive_dungeon?code="+dungCode
     );
 
     const dungeon = await response.json();

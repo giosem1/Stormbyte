@@ -1,13 +1,14 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { getMongoClient } from "../db/mongo";
-import { User } from "../types/types";
+import { RoomSave, User } from "../types/types";
 
 interface DungeonSave{
     id: string,
     code: string,
     nameDungeon: string,
     owner: string,
-    collaborators: string[]
+    collaborators: string[],
+    rooms: RoomSave[]
 }
 
 app.http("save_dungeon", {
@@ -15,13 +16,14 @@ app.http("save_dungeon", {
   authLevel: "anonymous",
   handler: async (req, ctx): Promise<HttpResponseInit> => {
     const body = await req.json() as DungeonSave;
-    const {id, code, nameDungeon, owner, collaborators} = body
+    const {id, code, nameDungeon, owner, collaborators, rooms} = body
     const dungeonSave = {
         id,
         code,
         nameDungeon,
         owner,
-        collaborators
+        collaborators,
+        rooms
     }
     const client = await getMongoClient();
     const db = client.db("game");

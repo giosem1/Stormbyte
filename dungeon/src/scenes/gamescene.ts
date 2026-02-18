@@ -1,75 +1,7 @@
 import Phaser from "phaser";
 import GenericPanel from "../ui/pannel";
-
-type ItemType = "room" | "enemy" | "trap";
-
-interface EnemySave {
-  id: string;
-  asset: string;
-  x: number;
-  y: number;
-}
-
-interface TrapSave {
-  id: string;
-  asset: string;
-  name: "Spike" | "Fire" | "BearTrap",
-  x: number;
-  y: number;
-}
-
-const TRAP_CONFIG = {
-  Spike: {
-    idle: "spk_idle",
-    anim: "spikeActivate"
-  },
-  Fire: {
-    idle: "fir_idle",
-    anim: "fireActivate"
-  },
-  BearTrap: {
-    idle: "brt_idle",
-    anim: "beartActivate"
-  }
-}
-const ENEMY_CONFIG = {
-  default: {
-    idle: "enemy_idle",
-    alert: "enemy_alert",
-    attack: "enemy_attack",
-    alertRange: 150,
-    alertDuration: 400
-  }
-};
-
-interface DoorSave {
-  id: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  targetRoomId: string;
-  spawnX: number;
-  spawnY: number;
-}
-
-interface RoomSave {
-  id: string;
-  asset: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  doors: DoorSave[];
-  enemies: EnemySave[];
-  traps: TrapSave[];
-}
-
-interface DungeonSave {
-  name: string;
-  version: number;
-  rooms: RoomSave[];
-}
+import { ENEMY_CONFIG, TRAP_CONFIG, type Dungeon, type ItemType, type RoomSave, type User } from "../types/types";
+import { createArcherAnimations, createEnemyAnimations, createHeartAnimations, createKnightAnimations, createMageAnimations, trapAnimation } from "./animation";
 
 const SCALE_RULES: Record<ItemType, number> = {
   room: 1.2,
@@ -79,7 +11,9 @@ const SCALE_RULES: Record<ItemType, number> = {
 const HERO_TARGET_HEIGHT = 120;
 
 export default class GameScene extends Phaser.Scene {
-  private dungeon!: DungeonSave;
+  private user!: User;
+  private userClass!: string;
+  private dungeon!: Dungeon;
   private hero!: Phaser.GameObjects.Sprite;
   private traps: Phaser.GameObjects.Sprite[] = [];
   private enemies: Phaser.GameObjects.Sprite[] = [];
@@ -94,12 +28,26 @@ export default class GameScene extends Phaser.Scene {
   constructor() {
     super("GameScene");
   }
+  
 
-  preload() {
+  async preload() {
     // Object image & spritesheet
     this.load.image("bg-stone", "assets/dark_wall.png");
     this.load.image("bag", "assets/user/bags.png");
-    this.load.json("dungeon", "assets/dungeons/dungeon.json");
+    const rawDungeon = localStorage.getItem("dungeon")
+    const rawUser = localStorage.getItem("user")
+    if (!rawUser){
+      window.location.href = "login.html"
+      throw new Error("User not authenticated")
+    }
+    if(!rawDungeon){
+      window.location.href = "homepage.html";
+      throw new Error("Dungeon not foung");
+    }
+
+    this.user = JSON.parse(rawUser)
+    this.userClass = this.user.classe
+    this.load.json("dungeon", rawDungeon);
     this.load.image("heart", "assets/heart.png"); 
     this.load.spritesheet("heart_loss", "assets/heart_loss.png", {
         frameWidth: 256,
@@ -107,19 +55,46 @@ export default class GameScene extends Phaser.Scene {
     });
 
     // Hero spritesheet
-    this.load.image("hero", "assets/heroes/Cavaliere.png");
-    this.load.spritesheet("kng", "assets/KnightAnimation/KnightWalk.png", {
-        frameWidth: 290,
-        frameHeight: 309
-    });
-    this.load.spritesheet("kngAttack", "assets/KnightAnimation/KnightAttack.png", {
-        frameWidth: 439,
-        frameHeight: 408
-    });
-    this.load.spritesheet("kngDeath", "assets/KnightAnimation/KnightDeath.png", {
-        frameWidth: 361,
-        frameHeight: 288
-    });
+    if(this.userClass === "Knight"){
+      this.load.spritesheet("kng", "assets/KnightAnimation/KnightWalk.png", {
+          frameWidth: 290,
+          frameHeight: 309
+      });
+      this.load.spritesheet("kngAttack", "assets/KnightAnimation/KnightAttack.png", {
+          frameWidth: 439,
+          frameHeight: 408
+      });
+      this.load.spritesheet(this.userClass+"Death", "assets/KnightAnimation/KnightDeath.png", {
+          frameWidth: 361,
+          frameHeight: 288
+      });
+    }else if(this.userClass === "Mage"){
+      this.load.spritesheet("mg", "assets/MageAnimation/MageWalk.png", {
+          frameWidth: 126,
+          frameHeight: 260
+      });
+      this.load.spritesheet("mgAttack", "assets/MageAnimation/MageAttack.png", {
+          frameWidth: 383,
+          frameHeight: 321
+      });
+      this.load.spritesheet(this.userClass+"Death", "assets/MageAnimation/MageDeath.png", {
+          frameWidth: 404,
+          frameHeight: 285
+      });
+    }else if(this.userClass === "Archer"){
+      this.load.spritesheet("arc", "assets/ArcherAnimation/ArcherWalk.png", {
+          frameWidth: 254,
+          frameHeight: 264
+      });
+      this.load.spritesheet("arcAttack", "assets/ArcherAnimation/ArcherAttack.png", {
+          frameWidth: 389,
+          frameHeight: 378
+      });
+      this.load.spritesheet(this.userClass+"Death", "assets/ArcherAnimation/ArcherDeath.png", {
+          frameWidth: 293,
+          frameHeight: 284
+      });
+    }
 
     // Traps spritesheet
     this.load.image("spk_idle", "assets/traps/spike.png");
@@ -159,7 +134,12 @@ export default class GameScene extends Phaser.Scene {
      if (!this.anims.exists("walk")) {
         this.createAllAnimations();
     } 
-    this.dungeon = this.cache.json.get("dungeon");
+    const rawDungeon = localStorage.getItem("dungeon")
+    if(!rawDungeon){
+      window.location.href = "homepage.html";
+      throw new Error("Dungeon not foung");
+    }
+    this.dungeon = JSON.parse(rawDungeon);
     const { width, height } = this.scale;
     const bg = this.add.tileSprite(0, 0, width, height, "bg-stone");
 
@@ -174,10 +154,46 @@ export default class GameScene extends Phaser.Scene {
     bagIcon.setDepth(100);
     bagIcon.setInteractive();
     bagIcon.on("pointerdown", () => {
-      console.log("Apri inventario");
-    });
-    bagIcon.on("pointerdown", () => {
-      this.toggleInventory();
+
+      const panel = new GenericPanel("generic-panel", "panel-content", "overlay");
+
+      const rows = 3;
+      const cols = 3;
+      const totalSlots = rows * cols;
+
+      let slotsHTML = "";
+
+      for (let i = 0; i < totalSlots; i++) {
+
+        const slot = this.inventorySlots[i];
+        const isFilled = slot && slot.getData("filled");
+        const itemKey = isFilled ? slot.getData("itemKey") : null;
+
+        slotsHTML += `
+          <div class="inventory-slot">
+            ${isFilled 
+              ? `<img src="assets/items/${itemKey}.png" class="inventory-item" />`
+              : ``}
+          </div>
+        `;
+      }
+
+      panel.show(`
+        <h2 class="panel-title text-lg mb-4 text-center">Inventario</h2>
+        
+        <div class="inventory-grid">
+          ${slotsHTML}
+        </div>
+
+        <div class="text-center mt-6">
+          <button id="closeBag" class="panel-btn">Chiudi</button>
+        </div>
+      `);
+
+      document
+        .getElementById("closeBag")
+        ?.addEventListener("click", () => panel.hide());
+
     });
 
     const exitButton = this.add.text(50, 50, "<-", { fontFamily: '"Press Start 2P"', fontSize: '30px', color: '#ffffff'});
@@ -216,19 +232,13 @@ export default class GameScene extends Phaser.Scene {
     });
     inviteText.on("pointerdown", () => {
       const panel = new GenericPanel("panel", "panel-content", "panel-overlay");
-
-      const friendsList = [
-          { name: "Luca Rossi", uid: "102938", avatar: "/assets/user/placeholder.png" },
-          { name: "Sara Bianchi", uid: "847362", avatar: "/assets/user/placeholder.png" },
-          { name: "Marco Verdi", uid: "554221", avatar: "/assets/user/placeholder.png" }
-      ];
-
+      const friendsList = this.user.friends
       const friendsHTML = friendsList.map(friend => `
           <div class="friend-row flex items-center justify-between border rounded-lg p-3">
               <div class="flex items-center">
-                  <img src="${friend.avatar}" alt="Avatar" class="w-12 h-12 rounded-full object-cover mr-4"/>
+                  <img src="${friend.profileImage}" alt="Avatar" class="w-12 h-12 rounded-full object-cover mr-4"/>
                   <div class="flex flex-col">
-                      <span class="text-white font-semibold text-lg">${friend.name}</span>
+                      <span class="text-white font-semibold text-lg">${friend.username}</span>
                       <span class="text-gray-400 text-sm">UID: ${friend.uid}</span>
                   </div>
               </div>
@@ -247,7 +257,7 @@ export default class GameScene extends Phaser.Scene {
           const button = btn as HTMLButtonElement;
           button.addEventListener("click", () => {
               const friend = friendsList[i];
-              console.log(`Invito inviato a: ${friend.name} (UID: ${friend.uid})`);
+              console.log(`Invito inviato a: ${friend.username} (UID: ${friend.uid})`);
               button.textContent = "✓";
               button.disabled = true;
           });
@@ -274,12 +284,12 @@ export default class GameScene extends Phaser.Scene {
     });
 
     this.load.once("complete", () => {
-      this.createEnemyAnimations();
-      this.trapAnimation();
+      createEnemyAnimations(this.anims);
+      trapAnimation(this.anims);
       this.buildDungeon();
       this.spawnHero();
       this.createUI();
-      this.createHeartAnimations();
+      createHeartAnimations(this.anims);
       this.spawnRandomItems();
       this.initItemPickup();
     });
@@ -336,28 +346,6 @@ export default class GameScene extends Phaser.Scene {
     this.inventoryPanel = this.add.container(width / 2, height / 2).setDepth(150);
     this.inventoryPanel.setScrollFactor(0);
     this.inventoryPanel.setVisible(false);
-
-    const bg = this.add.rectangle(0, 0, 300, 400, 0x4b3b2a, 0.9);
-    bg.setStrokeStyle(4, 0x000000);
-    this.inventoryPanel.add(bg);
-
-    const title = this.add.text(0, -180, "Inventario", {
-        fontFamily: '"Press Start 2P"',
-        fontSize: "16px",
-        color: "#FFD700"
-    }).setOrigin(0.5);
-    this.inventoryPanel.add(title);
-
-    const closeBtn = this.add.text(0, 180, "CHIUDI", {
-        fontFamily: '"Press Start 2P"',
-        fontSize: "16px",
-        color: "#ffffff",
-        backgroundColor: "#000000",
-        padding: { x: 12, y: 6 }
-    }).setOrigin(0.5)
-     .setInteractive({ useHandCursor: true });
-    closeBtn.on("pointerdown", () => this.toggleInventory());
-    this.inventoryPanel.add(closeBtn);
 
     this.inventorySlots = [];
     for (let row = 0; row < 3; row++) {
@@ -435,24 +423,10 @@ export default class GameScene extends Phaser.Scene {
     });
   }
 
-
-  private toggleInventory() {
-    if (!this.inventoryPanel) return;
-
-    this.isInventoryOpen = !this.isInventoryOpen;
-    this.inventoryPanel.setVisible(this.isInventoryOpen);
-
-    this.inventorySlots.forEach(slot => {
-        if (slot.getData("filled")) {
-            slot.setVisible(this.isInventoryOpen);
-        }
-    });
-  }
-
   // Spawn and collectiong items
   private spawnRandomItems() {
     const itemAssets = [
-        { key: "potion", asset: "assets/items/potion_health.png" },
+        { key: "potion", asset: "assets/items/potion.png" },
         { key: "emerald", asset: "assets/items/emerald.png" },
         { key: "rubin", asset: "assets/items/rubin.png" },
         { key: "sword", asset: "assets/items/sword.png" },
@@ -493,7 +467,6 @@ export default class GameScene extends Phaser.Scene {
                 obj.on("pointerdown", () => {
                     this.collectItem(obj);
                 });
-                this.itemsInScene.push(obj);
             }
         });
     });
@@ -601,110 +574,12 @@ export default class GameScene extends Phaser.Scene {
 
   // Animation
   private createAllAnimations() {
-    this.createKnightAnimations();
-    this.createEnemyAnimations();
-    this.trapAnimation();
+    createKnightAnimations(this.anims);
+    createMageAnimations(this.anims);
+    createArcherAnimations(this.anims);
+    createEnemyAnimations(this.anims);
+    trapAnimation(this.anims);
   }  
-
-  private createKnightAnimations() {
-    if (!this.anims.exists("walk")) {
-        this.anims.create({
-            key: "walk",
-            frames: this.anims.generateFrameNumbers("kng", { start: 0, end: 35 }),
-            frameRate: 9,
-            repeat: -1
-        });
-    }
-    if (!this.anims.exists("attack")) {
-      console.log("active attack")
-        this.anims.create({
-            key: "attack",
-            frames: this.anims.generateFrameNumbers("kngAttack", { start: 0, end: 35 }),
-            frameRate: 16,
-            repeat: 0
-        });
-    }
-    if (!this.anims.exists("death")) {
-        this.anims.create({
-            key: "death",
-            frames: this.anims.generateFrameNumbers("kngDeath", { start: 0, end: 35 }),
-            frameRate: 10,
-            repeat: 0
-        });
-    }
-  }
-  
-  private trapAnimation() {
-     if (!this.anims.exists("spikeActivate")) {
-      this.anims.create({
-        key: "spikeActivate",
-        frames: this.anims.generateFrameNumbers("spk", { start: 0, end: 13 }),
-        frameRate: 16,
-        repeat: 0
-      });
-    }
-
-    if (!this.anims.exists("fireActivate")) {
-      this.anims.create({
-        key: "fireActivate",
-        frames: this.anims.generateFrameNumbers("fir", { start: 0, end: 13 }),
-        frameRate: 5,
-        repeat: 0
-      });
-    }
-
-    if (!this.anims.exists("beartActivate")) {
-      this.anims.create({
-        key: "beartActivate",
-        frames: this.anims.generateFrameNumbers("brt", { start: 0, end: 3}),
-        frameRate: 5,
-        repeat: 0
-      });
-    }
-  }
-
-  private createEnemyAnimations() {
-    if (!this.anims.exists("enemy_idle")) {
-      this.anims.create({
-        key: "enemy_idle",
-        frames: this.anims.generateFrameNumbers("enemy_idle", { start: 0, end: 7 }),
-        frameRate: 6,
-        repeat: -1
-      });
-    }
-
-    if (!this.anims.exists("enemy_alert")) {
-      this.anims.create({
-        key: "enemy_alert",
-        frames: this.anims.generateFrameNumbers("enemy_alert", { start: 0, end: 7 }),
-        frameRate: 8,
-        repeat: -1
-      });
-    }
-
-    if (!this.anims.exists("enemy_attack")) {
-      this.anims.create({
-        key: "enemy_attack",
-        frames: this.anims.generateFrameNumbers("enemy_attack", { start: 0, end: 7 }),
-        frameRate: 12,
-        repeat: -1
-      });
-    }
-  }
-  
-  private createHeartAnimations() {
-    if (!this.anims.exists("heartLose")) {
-        this.anims.create({
-            key: "heartLose",
-            frames: this.anims.generateFrameNumbers("heart_loss", {
-                start: 0,
-                end: 15
-            }),
-            frameRate: 12,
-            repeat: 0
-        });
-    }
-  }
 
   // Traps
   private activeTraps() {
@@ -811,10 +686,10 @@ export default class GameScene extends Phaser.Scene {
     const x = startRoom.x + startRoom.width / 2;
     const y = startRoom.y + startRoom.height / 2;
 
-    this.hero = this.add.sprite(x, y, "kngDeath", 0);
+    this.hero = this.add.sprite(x, y, this.userClass+"Death", 0);
     this.hero.setOrigin(0.5, 1);
     this.hero.setDepth(10);
-    const frame = this.textures.get("kngDeath").get("0");
+    const frame = this.textures.get(this.userClass+"Death").get("0");
     const scale = HERO_TARGET_HEIGHT / frame.height;
     this.hero.setScale(scale);
 
@@ -822,7 +697,7 @@ export default class GameScene extends Phaser.Scene {
     this.isAttacking = false;
     this.cameras.main.startFollow(this.hero);
     this.cameras.main.setZoom(1);
-    this.createKnightAnimations();
+    createKnightAnimations(this.anims);
     this.initMovement();
     this.initAttack();
   }
@@ -848,27 +723,27 @@ export default class GameScene extends Phaser.Scene {
 
       if (cursors.left?.isDown || keys.left?.isDown) {
           this.hero.x -= speed * dt;
-          this.hero.play("walk", true);
+          this.hero.play("walk"+this.userClass, true);
           this.hero.flipX = true;
           moving = true;
       } else if (cursors.right?.isDown || keys.right?.isDown) {
           this.hero.x += speed * dt;
-          this.hero.play("walk", true);
+          this.hero.play("walk"+this.userClass, true);
           this.hero.flipX = false;
           moving = true;
       } else if (cursors.up?.isDown || keys.up?.isDown) {
           this.hero.y -= speed * dt;
-          this.hero.play("walk", true);
+          this.hero.play("walk"+this.userClass, true);
           moving = true;
       } else if (cursors.down?.isDown || keys.down?.isDown) {
           this.hero.y += speed * dt;
-          this.hero.play("walk", true);
+          this.hero.play("walk"+this.userClass, true);
           moving = true;
       }
         
       if (!moving && !this.isAttacking) {
         this.hero.stop();
-        this.hero.setTexture("kngDeath", 0); 
+        this.hero.setTexture(this.userClass+"Death", 0); 
       }
       this.activeTraps();
       this.updateEnemies();
@@ -931,7 +806,7 @@ export default class GameScene extends Phaser.Scene {
   
       this.isAttacking = true;
   
-      this.hero.play("attack", true);
+      this.hero.play("attack"+this.userClass, true);
   
       const attackHitbox = this.getAttackHitbox();
   
@@ -945,7 +820,7 @@ export default class GameScene extends Phaser.Scene {
   });
 
     this.hero.on("animationcomplete", (anim: Phaser.Animations.Animation) => {
-        if (anim.key === "attack") {
+        if (anim.key === "attack"+this.userClass) {
             this.isAttacking = false;
             this.hero.setTexture("kngDeath", 0);
         }
@@ -1000,7 +875,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.hero.stop();
 
-    this.hero.setTexture("kngDeath");
+    this.hero.setTexture(this.userClass+"Death");
     this.hero.play("death");
 
     this.cameras.main.stopFollow();

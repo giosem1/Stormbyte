@@ -19,11 +19,33 @@ export interface Dungeon{
     code: string,
     name: string,
     owner: string,
-    collaborators: string[]
+    collaborators: string[],
+    rooms: RoomSave[];
 }
 
 
 export type ItemType = "room" | "enemy" | "trap";
+
+export interface PlacedItem {
+  id: string;
+  src: string;
+  type: ItemType;
+  name?: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface ItemSave {
+  id: string;
+  asset: string;
+  name?: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
 export interface EnemySave {
   id: string;
@@ -64,16 +86,6 @@ export const ENEMY_CONFIG = {
   }
 };
 
-export interface DoorSave {
-  id: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  targetRoomId: string;
-  spawnX: number;
-  spawnY: number;
-}
 
 export interface RoomSave {
   id: string;
@@ -82,7 +94,6 @@ export interface RoomSave {
   y: number;
   width: number;
   height: number;
-  doors: DoorSave[];
   enemies: EnemySave[];
   traps: TrapSave[];
 }

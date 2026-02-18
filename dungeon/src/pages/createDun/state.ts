@@ -21,6 +21,22 @@ export interface ItemSave {
   height: number;
 }
 
+export interface EnemySave {
+  id: string;
+  asset: string;
+  x: number;
+  y: number;
+}
+
+export interface TrapSave {
+  id: string;
+  asset: string;
+  name: "Spike" | "Fire" | "BearTrap",
+  x: number;
+  y: number;
+}
+
+
 export interface RoomSave {
   id: string;
   asset: string;
@@ -28,8 +44,8 @@ export interface RoomSave {
   y: number;
   width: number;
   height: number;
-  enemies: ItemSave[];
-  traps: ItemSave[];
+  enemies: EnemySave[];
+  traps: TrapSave[];
 }
 
 export interface DungeonSave {
