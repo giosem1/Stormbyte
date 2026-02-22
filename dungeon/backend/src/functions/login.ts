@@ -28,7 +28,7 @@ app.http("login", {
       .digest("hex");
 
     const client = await getMongoClient();
-    const collection = client.db("game").collection("users");
+    const collection = client.db("stormbyte-db").collection("users");
 
     const player = await collection.findOne({
       username,

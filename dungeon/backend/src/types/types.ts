@@ -1,7 +1,7 @@
-export interface Frined {
+export interface Friend {
     username: string,
     uid: string,
-    profImg: string
+    profImg?: string
 }
 
 export interface User {
@@ -10,7 +10,7 @@ export interface User {
   passwordHash: string;
   classe: string;
   profileImage?: string;
-  friends: Frined[];
+  friends: Friend[];
   inventory: any[];
   dungeons: {
     id: string;

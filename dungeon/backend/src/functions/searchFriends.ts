@@ -1,6 +1,6 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { getMongoClient } from "../db/mongo";
-import { Frined, User } from "../types/types";
+import { Friend, User } from "../types/types";
 
 app.http("search_friend", {
   methods: ["GET"],
@@ -9,11 +9,15 @@ app.http("search_friend", {
     const friend_code= req.query.get("code") ?? "";
     console.log(friend_code)
     const client = await getMongoClient();
-    const collection = client.db("game").collection<User>("users");
+    const collection = client.db("stormbyte-db").collection<User>("users");
 
     const friend = await collection.findOne({uid: friend_code});
-
-    const sendFriend: Frined = {
+    if (!friend) {
+      return {
+        status:200
+      }
+    }
+    const sendFriend: Friend = {
         username: friend.username,
         uid: friend.uid,
         profImg: friend.profileImage

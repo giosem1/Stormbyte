@@ -1,10 +1,10 @@
 import { getMongoClient } from "../db/mongo";
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
-import { Frined, User } from "../types/types";
+import { User } from "../types/types";
 
 interface ChangeClass{
     selectedClass: string,
-    UserId
+    UserId: string
 }
 app.http("class", {
   methods: ["PATCH", "OPTIONS"],
@@ -21,7 +21,7 @@ app.http("class", {
     const { selectedClass, UserId } = body;
 
     const client = await getMongoClient();
-    const db = client.db("game");
+    const db = client.db("stormbyte-db");
     const users = db.collection<User>("users")
     const result = await users.updateOne(
         { uid: UserId },

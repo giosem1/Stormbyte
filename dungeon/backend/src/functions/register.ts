@@ -34,7 +34,7 @@ app.http("register", {
       .digest("hex");
 
     const client = await getMongoClient();
-    const db = client.db("game");
+    const db = client.db("stormbyte-db");
     const users = db.collection("users");
 
     const exists = await users.findOne({ username });
@@ -52,8 +52,6 @@ app.http("register", {
       dungeons: [],
       inventory: [],
     };
-    console.log(classe)
-    console.log(userDoc.classe)
     const result = await users.insertOne(userDoc);
     
     return {
