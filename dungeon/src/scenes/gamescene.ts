@@ -231,7 +231,7 @@ export default class GameScene extends Phaser.Scene {
       inviteText.setFontSize(20)
     });
     inviteText.on("pointerdown", () => {
-      const panel = new GenericPanel("panel", "panel-content", "panel-overlay");
+      const panel = new GenericPanel("generic-panel", "panel-content", "overlay");
       const friendsList = this.user.friends
       const friendsHTML = friendsList.map(friend => `
           <div class="friend-row flex items-center justify-between border rounded-lg p-3">

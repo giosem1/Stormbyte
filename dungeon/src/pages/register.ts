@@ -95,8 +95,8 @@ togglePasswordBtn.addEventListener("click", () => {
 
   passwordInput.type = passwordVisible ? "text" : "password";
   togglePasswordIcon.src = passwordVisible
-    ? "/assets/icons/toggleClosed.png"
-    : "/assets/icons/toggleOpen.png";
+    ? "/assets/icons/toggleOpen.png"
+    : "/assets/icons/toggleClosed.png";
 });
 
 usernameInput.addEventListener("input", () => {

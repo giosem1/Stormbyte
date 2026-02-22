@@ -35,8 +35,8 @@ h2 {
 }
 
 input[type="text"],
-input[type="password"] {
-    width: calc(100% - 20px);
+#new-password {
+    width: 100%;
     padding: 15px;
     margin-bottom: 20px;
     background: #2a2a2a;
@@ -45,37 +45,43 @@ input[type="password"] {
     color: #e0e0e0;
     font-size: 1.1em;
     outline: none;
+    box-sizing: border-box;
 }
 
 input[type="text"]::placeholder,
 input[type="password"]::placeholder {
     color: #888;
 }
+
 .password-wrapper {
-  position: relative;
-  width: 100%;
+    position: relative;
+    width: 100%;
+    display: flex;
 }
 
 #new-password {
-  width: 100%;
-  padding-right: 48px; 
+    padding-right: 60px;
 }
 
 #toggle-password {
-  position: absolute;
-  top: 40%;
-  right: 12px;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
+    position: absolute;
+    top: 38%;
+    right: 10px;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #toggle-password img {
-  width: 85px;   
-  height: 85px;
+    width: 40px;   
+    height: 40px;
 }
+
 input[type="text"]:focus,
 input[type="password"]:focus {
     border-color: #ffd700;
@@ -83,7 +89,7 @@ input[type="password"]:focus {
 }
 
 button#register-btn {
-    width: calc(100% - 20px);
+    width: 100%;
     padding: 15px;
     background: #e6ed09;
     border: none;
@@ -94,6 +100,7 @@ button#register-btn {
     cursor: pointer;
     transition: background-color 0.3s ease;
     margin-top: 10px;
+    box-sizing: border-box;
 }
 
 button#register-btn:hover {
