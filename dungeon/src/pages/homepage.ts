@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { Torch } from "../scenes/torch";
 import GenericPanel from "../ui/pannel";
 import { PREVIEW_TO_CLASS, type Friend, type PlayerClass, type User } from "../types/types";
+/* import * as signalR from "@microsoft/signalr"; */
 
 import { PREVIEW_CONFIG, mountPreview, unmountPreview } from "../pages/previewanimation"; 
 const config = {
@@ -21,7 +22,6 @@ const panel = new GenericPanel(
 );
 
 const rawUser = localStorage.getItem("user");
-const notifications: any[] = [];
 
 if (!rawUser) {
   window.location.href = "login.html";
@@ -34,6 +34,35 @@ const uid = document.getElementById("usercode") as HTMLParagraphElement;
 username.textContent = user.username
 uid.textContent = user.uid
 
+/* // Array globale di notifiche
+let notifications: any[] = [];
+
+// Crea connessione SignalR
+const connection = new signalR.HubConnectionBuilder()
+  .withUrl("http://localhost:7071/api", {
+    withCredentials: true,
+    headers: {
+      "X-User-Id": user.uid
+    }
+  })
+  .withAutomaticReconnect()
+  .build();
+
+connection.on("FriendRequestReceived", (notification) => {
+  console.log("Nuova richiesta di amicizia:", notification);
+});
+
+async function startConnection() {
+  try {
+    await connection.start();
+    console.log("SignalR collegato!");
+  } catch (err) {
+    console.error("Errore connessione SignalR:", err);
+    setTimeout(startConnection, 60000); // retry in caso di fallimento
+  }
+}
+
+startConnection();
 const notificationBell = Object.assign(document.createElement("img"), {
   src: "/assets/icons/bell.png",
   id: "notificationBell",
@@ -117,6 +146,25 @@ notificationBell.addEventListener("click", () => {
   });
 });
 
+function updateNotificationBadge() {
+  const bell = document.getElementById("notificationBell");
+  if (!bell) return;
+
+  if (notifications.length > 0) {
+    bell.style.border = "2px solid red"; // badge visivo semplice
+  } else {
+    bell.style.border = "none";
+  }
+}
+connection.on("FriendRequestReceived", (notification) => {
+    notifications.push({
+        type: "friend_request",
+        fromUid: notification.fromUserId,
+        fromUsername: notification.fromUserName,
+        timestamp: notification.timestamp
+    });
+    updateNotificationBadge();
+});
 async function acceptFriendRequest(fromUid: string) {
   try {
     await fetch("http://localhost:7071/api/accept_request", {
@@ -131,7 +179,7 @@ async function acceptFriendRequest(fromUid: string) {
   } catch {
     alert("Errore accettazione richiesta");
   }
-}
+} */
 
 
 
@@ -471,31 +519,42 @@ function showFriendPanel(friend: Friend) {
     });
 }
 
-async function sendFriendRequest(friend: Friend, UserId: String) {
+async function sendFriendRequest(friend: Friend, UserId: string) {
   try {
     const res = await fetch(
       `http://localhost:7071/api/send_request`,
       {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ friend, UserId })
+        body: JSON.stringify({ friend, userId: UserId })
       }
     );
-    //TODO: user friends list update in realtime
-    if (!res.ok) throw new Error();
-    const updatedUser: User = await res.json();
-    user = updatedUser
+
+    if (!res.ok) {
+      const text = await res.text(); // leggi testo grezzo
+      throw new Error(`HTTP ${res.status}: ${text}`);
+    }
+
+    let updatedUser: User | null = null;
+    try {
+      updatedUser = await res.json(); // prova a parsare JSON
+    } catch {
+      console.warn("Risposta vuota o non JSON");
+    }
+
+    if (updatedUser) user = updatedUser;
+
     panel.show(`
       <h2 class="panel-title text-lg mb-4">Success</h2>
       <p class="text-gray-400">Friend request sent</p>
       <button class="panel-btn mt-4" id="closeSuccess">CLOSE</button>
     `);
 
-    document
-      .getElementById("closeSuccess")
+    document.getElementById("closeSuccess")
       ?.addEventListener("click", () => panel.hide());
 
-  } catch {
+  } catch (err) {
+    console.error("Errore invio richiesta:", err);
     alert("Errore invio richiesta");
   }
 }

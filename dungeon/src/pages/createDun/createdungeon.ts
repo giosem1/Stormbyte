@@ -150,7 +150,6 @@ function downloadJSON(data: object) {
   a.download = "dungeon.json";
   a.click();
 
-  URL.revokeObjectURL(url);
 }
 
 const save = document.getElementById("save") as HTMLParagraphElement;
@@ -174,4 +173,5 @@ save.addEventListener("click", () => {
 
   const dungeon = buildDungeonSave(user.uid);
   downloadJSON(dungeon);
+  
 });
