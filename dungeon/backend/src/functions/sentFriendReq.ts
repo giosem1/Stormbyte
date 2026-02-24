@@ -1,76 +1,38 @@
-import { getMongoClient } from "../db/mongo";
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
-import { Frined, User } from "../types/types";
 
-interface FriendRrequest{
-    friend: Frined,
-    UserId
+interface SendFriendRequestBody {
+  toUserId: string;
+  fromUserId: string;
+  fromUserName: string;
 }
 app.http("send_request", {
-  methods: ["PATCH", "OPTIONS"],
+  methods: ["POST"],
   authLevel: "anonymous",
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-
-    if (req.method === "OPTIONS") {
-      return {
-        status: 204,
-        headers: corsHeaders()
-      };
+  extraOutputs: [
+    {
+      type: "signalR",
+      name: "signalRMessages",
+      hubName: "notifications"
     }
-    let body = await req.json() as FriendRrequest;
-    const { friend, UserId } = body;
+  ],
+  handler: async(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
 
-    const client = await getMongoClient();
-    const db = client.db("game");
-    const users = db.collection<User>("users");
+    const body = await req.json() as SendFriendRequestBody;
 
-    const user = await users.findOne({uid: UserId })
+    const { toUserId, fromUserId, fromUserName } = body;
 
-    if(user.friends.some(friendl => friendl.uid === friend.uid)){
-        return {
-            status: 201,
-            headers: {
-                ...corsHeaders(),
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(user)
-        };
-    }
-    const result = await users.updateOne(
-        { uid: UserId },
-        {
-            $push: {
-                friends: friend
-            }
-        }
-    )
+    context.extraOutputs.set("signalRMessages", [{
+      userId: toUserId,
+      target: "FriendRequestReceived",
+      arguments: [{
+        fromUserId,
+        fromUserName,
+        timestamp: new Date()
+      }]
+    }]);
+
     return {
-      status: 201,
-      headers: {
-        ...corsHeaders(),
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(result)
+      jsonBody: { success: true }
     };
   }
 });
-
-function corsHeaders() {
-  return {
-    "Access-Control-Allow-Origin": "http://localhost:5173",
-    "Access-Control-Allow-Methods": "PATCH, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type"
-  };
-}
-
-function error(status: number, message: string): HttpResponseInit {
-  return {
-    status,
-    headers: {
-      ...corsHeaders(),
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ error: message })
-  };
-}
-

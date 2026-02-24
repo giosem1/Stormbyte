@@ -1,8 +1,9 @@
 import Phaser from "phaser";
 import { Torch } from "../scenes/torch";
 import GenericPanel from "../ui/pannel";
+import { clearSession, getSession } from "../utils/session";
+import { createConnection, startConnection, onFriendRequest } from "../utils/signalrClient";
 import { PREVIEW_TO_CLASS, type Friend, type PlayerClass, type User } from "../types/types";
-/* import * as signalR from "@microsoft/signalr"; */
 
 import { PREVIEW_CONFIG, mountPreview, unmountPreview } from "../pages/previewanimation"; 
 const config = {
@@ -21,60 +22,54 @@ const panel = new GenericPanel(
   "overlay"
 );
 
-const rawUser = localStorage.getItem("user");
-
-if (!rawUser) {
-  window.location.href = "login.html";
-  throw new Error("User non autenticato");
+//User
+const session = getSession();
+if (!session) {
+    window.location.href = "login.html";
+    throw new Error("User non autenticato");
 }
 
-let user: User = JSON.parse(rawUser);
+const user = session.user;
+
 const username = document.getElementById("username") as HTMLParagraphElement;
 const uid = document.getElementById("usercode") as HTMLParagraphElement; 
 username.textContent = user.username
 uid.textContent = user.uid
 
-/* // Array globale di notifiche
 let notifications: any[] = [];
 
-// Crea connessione SignalR
-const connection = new signalR.HubConnectionBuilder()
-  .withUrl("http://localhost:7071/api", {
-    withCredentials: true,
-    headers: {
-      "X-User-Id": user.uid
-    }
-  })
-  .withAutomaticReconnect()
-  .build();
-
-connection.on("FriendRequestReceived", (notification) => {
-  console.log("Nuova richiesta di amicizia:", notification);
+const connection = createConnection(user);
+startConnection();
+onFriendRequest((notif) => {
+    notifications.push({
+        type: "friend_request",
+        fromUid: notif.fromUserId,
+        fromUsername: notif.fromUserName,
+        timestamp: notif.timestamp
+    });
+    updateNotificationBadge();
 });
 
-async function startConnection() {
-  try {
-    await connection.start();
-    console.log("SignalR collegato!");
-  } catch (err) {
-    console.error("Errore connessione SignalR:", err);
-    setTimeout(startConnection, 60000); // retry in caso di fallimento
-  }
+type EventType = "friend_request" | "class_change" | "dungeon_joined";
+
+const events: Record<EventType, Array<(payload: any) => void>> = {
+    friend_request: [],
+    class_change: [],
+    dungeon_joined: []
+};
+
+export function on(event: EventType, callback: (payload: any) => void) {
+    events[event].push(callback);
 }
 
-startConnection();
+export function emit(event: EventType, payload: any) {
+    events[event].forEach(cb => cb(payload));
+}
+
+// Notification
 const notificationBell = Object.assign(document.createElement("img"), {
   src: "/assets/icons/bell.png",
   id: "notificationBell",
-  style: `
-    position: fixed;
-    top: 30px;
-    right: 30px;
-    width: 100px;
-    height: 100px;
-    cursor: pointer;
-    z-index: 1000;
-  `
 });
 document.body.appendChild(notificationBell);
 
@@ -131,7 +126,7 @@ notificationBell.addEventListener("click", () => {
       const index = e.target.dataset.index;
       const notif = notifications[index];
 
-      await acceptFriendRequest(notif.fromUid);
+      await acceptFriendRequest(notif.fromUid, user);
 
       notifications.splice(index, 1);
       panel.hide();
@@ -146,14 +141,22 @@ notificationBell.addEventListener("click", () => {
   });
 });
 
-function updateNotificationBadge() {
-  const bell = document.getElementById("notificationBell");
-  if (!bell) return;
+const notificationBadge = Object.assign(document.createElement("span"), {id: "notificationBadge"});
+notificationBadge.style.display = "flex";
+notificationBadge.style.display = "none";
 
-  if (notifications.length > 0) {
-    bell.style.border = "2px solid red"; // badge visivo semplice
+document.body.appendChild(notificationBadge);
+function updateNotificationBadge() {
+  const badge = document.getElementById("notificationBadge");
+  if (!badge) return;
+
+  const count = notifications.filter(n => n.type === "friend_request").length;
+
+  if (count > 0) {
+    badge.textContent = count > 99 ? "99+" : count.toString();
+    badge.style.display = "flex";
   } else {
-    bell.style.border = "none";
+    badge.style.display = "none";
   }
 }
 connection.on("FriendRequestReceived", (notification) => {
@@ -165,24 +168,8 @@ connection.on("FriendRequestReceived", (notification) => {
     });
     updateNotificationBadge();
 });
-async function acceptFriendRequest(fromUid: string) {
-  try {
-    await fetch("http://localhost:7071/api/accept_request", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        fromUid,
-        UserId: user.uid
-      })
-    });
 
-  } catch {
-    alert("Errore accettazione richiesta");
-  }
-} */
-
-
-
+// Menu
 const createD = document.getElementById("create") as HTMLParagraphElement;
 const changeC = document.getElementById("change") as HTMLParagraphElement;
 const friends = document.getElementById("friends") as HTMLParagraphElement;
@@ -191,16 +178,180 @@ const searchF = document.getElementById("search") as HTMLParagraphElement;
 const chanllengeD = document.getElementById("chanllenge") as HTMLParagraphElement;
 const exitD = document.getElementById("exit") as HTMLParagraphElement;
 
+// Create Dungeon
 createD.addEventListener("click", ()=>{
   localStorage.setItem("user", JSON.stringify(user));
   window.location.href = "createDungeon.html";
 })
 
+
+// Search Friend
+searchF.addEventListener("click", () => {
+
+  if (searchF.querySelector(".search-wrapper")) {
+    return;
+  }
+
+  searchF.style.display = "inline-flex";
+  searchF.style.alignItems = "center";
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "search-wrapper small";
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.placeholder = "Code";
+  input.autocomplete ="off";
+
+  const icon = document.createElement("img");
+  icon.className = "icon";
+  icon.src = "../../public/assets/icons/search.png";
+  icon.alt = "Cerca";
+  icon.draggable = false;
+
+  const doSearch = async () => {
+    const prefix = "SRBU";
+    const value = input.value.trim();
+
+    try{
+      const res = await fetch(
+        'http://localhost:7071/api/search_friend?code='+prefix+value
+      );
+      if (!res.ok) {
+      throw new Error("Amico non trovato");
+    }
+
+    const friend = await res.json();
+    showFriendPanel(friend, user);
+
+    } catch(err) {
+    console.error(err);
+    alert("Utente non trovato");
+    }
+    
+  };
+  
+  icon.addEventListener("click", doSearch);
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      doSearch();
+    }
+  });
+  input.addEventListener("input", () => {
+    input.value = input.value.replace(/\D/g, '');
+  });
+
+  wrapper.appendChild(input);
+  wrapper.appendChild(icon);
+
+  searchF.appendChild(wrapper);
+
+  input.focus();
+});
+
+function showFriendPanel(friend: Friend, user: User) {
+  panel.show(`
+    <h2 class="panel-title text-lg mb-4">Friend Found</h2>
+
+    <div class="flex items-center border rounded-lg p-3 gap-4">
+      <img 
+        src="/assets/user/placeholder.png" 
+        alt="${friend.username}"
+        class="w-14 h-14 rounded-full"
+        draggable="false"
+      />
+
+      <div class="flex flex-col flex-1">
+        <span class="text-white font-semibold text-lg">
+          ${friend.username}
+        </span>
+        <span class="text-gray-400 text-sm">
+          Code: ${friend.uid}
+        </span>
+      </div>
+
+      <button 
+        id="sendFriendRequest"
+        class="panel-btn"
+      >
+        Invia amicizia
+      </button>
+    </div>
+
+    <button id="closeFriendPanel" class="panel-btn mt-4">
+      CLOSE
+    </button>
+  `);
+
+  document
+    .getElementById("closeFriendPanel")
+    ?.addEventListener("click", () => panel.hide());
+
+  document
+    .getElementById("sendFriendRequest")
+    ?.addEventListener("click", () => {
+      sendFriendRequest(friend, user);
+    });
+}
+
+async function sendFriendRequest(friend: Friend, user: User) {
+  try {
+    const res = await fetch(
+      "http://localhost:7071/api/send_request",
+      {
+        method: "POST", 
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          toUserId: friend.uid,
+          fromUserId: user.uid,
+          fromUserName: user.username
+        })
+      }
+    );
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`HTTP ${res.status}: ${text}`);
+    }
+
+    panel.show(`
+      <h2 class="panel-title text-lg mb-4">Success</h2>
+      <p class="text-gray-400">Friend request sent</p>
+      <button class="panel-btn mt-4" id="closeSuccess">CLOSE</button>
+    `);
+
+    document.getElementById("closeSuccess")
+      ?.addEventListener("click", () => panel.hide());
+
+  } catch (err) {
+    console.error("Errore invio richiesta:", err);
+    alert("Errore invio richiesta");
+  }
+}
+async function acceptFriendRequest(fromUid: string, user: User) {
+  try {
+    await fetch("http://localhost:7071/api/accept_request", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fromUid,
+        userId: user.uid
+      })
+    });
+
+  } catch {
+    alert("Errore accettazione richiesta");
+  }
+}
+
+
+// Chanllenge Dungeon
 chanllengeD.addEventListener("click", ()=>{
   panel.show(`
     <h2 class="panel-title text-lg mb-6">Join Chamber</h2>
 
-    <input id="roomCode" type="text" placeholder="ENTER CODE"/>
+    <input id="roomCode" type="text" placeholder="ENTER CODE" autocomplete="off"/>
 
     <button id="confirmRoom" class="panel-btn"> CONFIRM </button>
 
@@ -226,6 +377,7 @@ chanllengeD.addEventListener("click", ()=>{
   });
 })
 
+// Change Class
 changeC.addEventListener("click", () => {
   panel.show(`
     <h2 class="panel-title text-lg mb-4">Select Class</h2>
@@ -324,80 +476,59 @@ async function updateClass(selectedClass: string, UserId: string){
       }
     );
     if (!res.ok) throw new Error();
-    const updatedUser: User = await res.json();
-    user = updatedUser
   } catch {
     alert("Errore invio richiesta");
   }
 }
 
+// Friend List
 friends.addEventListener("click", ()=>{
-  console.log(user.friends)
   const friendsList = user.friends
-      const friendsHTML = friendsList.map(friend => `
-          <div class="friend-row flex items-center justify-between border rounded-lg p-3">
-              <div class="flex items-center">
-                  <img src="${friend.profileImage}" alt="Avatar" class="w-12 h-12 rounded-full object-cover mr-4"/>
-                  <div class="flex flex-col">
-                      <span class="text-white font-semibold text-lg">${friend.username}</span>
-                      <span class="text-gray-400 text-sm">UID: ${friend.uid}</span>
-                  </div>
+  const friendsHTML = friendsList.map(friend => `
+      <div class="friend-row flex items-center justify-between border rounded-lg p-3">
+          <div class="flex items-center">
+              <img src="${friend.profileImage}" alt="Avatar" class="w-12 h-12 rounded-full object-cover mr-4"/>
+              <div class="flex flex-col">
+                  <span class="text-white font-semibold text-lg">${friend.username}</span>
+                  <span class="text-gray-400 text-sm">UID: ${friend.uid}</span>
               </div>
           </div>
-      `).join("");
+      </div>
+  `).join("");
 
-      panel.show(`
-          <h2 class="panel-title text-lg mb-4 text-center text-white font-bold">Invite Friends</h2>
-          <div id="invite-list" class="flex flex-col space-y-3 mt-4">
-              ${friendsHTML}
-          </div>
-          <button id="closeInvite" class="panel-btn mt-4 w-full text-center text-white font-bold">CLOSE</button>
-      `);
-      document.getElementById("closeInvite")!.addEventListener("click", () => {
-          panel.hide();
-      });
+  panel.show(`
+      <h2 class="panel-title text-lg mb-4 text-center text-white font-bold">Invite Friends</h2>
+      <div id="invite-list" class="flex flex-col space-y-3 mt-4">
+          ${friendsHTML}
+      </div>
+      <button id="closeInvite" class="panel-btn mt-4 w-full text-center text-white font-bold">CLOSE</button>
+  `);
+  document.getElementById("closeInvite")!.addEventListener("click", () => {
+      panel.hide();
+  });
 
 });
 
+// Dungeon List
 dungeons.addEventListener("click", ()=>{
+  const dungeonList = user.dungeons
+  const dungeonHTML = dungeonList?.map(dungeon => `
+    <div class="flex items-center border rounded-lg p-3">
+        <div class="flex flex-col">
+          <span class="text-white font-semibold text-lg">
+            ${dungeon.name}
+          </span>
+          <span class="text-gray-400 text-sm">
+            Dungeon ID: ${dungeon.code}
+          </span>
+        </div>
+      </div>
+    `).join("");
   panel.show(`
     <h2 class="panel-title text-lg mb-4">My Dungeons</h2>
 
     <div class="flex flex-col space-y-3 mt-4">
-
-      <div class="flex items-center border rounded-lg p-3">
-        <div class="flex flex-col">
-          <span class="text-white font-semibold text-lg">
-            Crypt of Shadows
-          </span>
-          <span class="text-gray-400 text-sm">
-            Dungeon ID: DNG-001
-          </span>
-        </div>
-      </div>
-
-      <div class="flex items-center border rounded-lg p-3">
-        <div class="flex flex-col">
-          <span class="text-white font-semibold text-lg">
-            Infernal Depths
-          </span>
-          <span class="text-gray-400 text-sm">
-            Dungeon ID: DNG-014
-          </span>
-        </div>
-      </div>
-
-      <div class="flex items-center border rounded-lg p-3">
-        <div class="flex flex-col">
-          <span class="text-white font-semibold text-lg">
-            Frost King Lair
-          </span>
-          <span class="text-gray-400 text-sm">
-            Dungeon ID: DNG-221
-          </span>
-        </div>
-      </div>
-
+      ${dungeonHTML}
     </div>
 
     <button id="closeDungeons" class="panel-btn mt-4">CLOSE</button>
@@ -408,153 +539,7 @@ dungeons.addEventListener("click", ()=>{
 });
 
 exitD.addEventListener("click", ()=>{
-  window.location.href = "login.html";
-})
+    clearSession();
+    window.location.href = "login.html";
 
-searchF.addEventListener("click", () => {
-
-  if (searchF.querySelector(".search-wrapper")) {
-    return;
-  }
-
-  searchF.style.display = "inline-flex";
-  searchF.style.alignItems = "center";
-
-  const wrapper = document.createElement("div");
-  wrapper.className = "search-wrapper small";
-
-  const input = document.createElement("input");
-  input.type = "text";
-  input.placeholder = "Code";
-
-  const icon = document.createElement("img");
-  icon.className = "icon";
-  icon.src = "../../public/assets/icons/search.png";
-  icon.alt = "Cerca";
-  icon.draggable = false;
-
-  const doSearch = async () => {
-    const prefix = "SRBU";
-    const value = input.value.trim();
-
-    try{
-      const res = await fetch(
-        'http://localhost:7071/api/search_friend?code='+prefix+value
-      );
-      if (!res.ok) {
-      throw new Error("Amico non trovato");
-    }
-
-    const friend = await res.json();
-    showFriendPanel(friend);
-
-    } catch(err) {
-    console.error(err);
-    alert("Utente non trovato");
-    }
-    
-  };
-  
-  icon.addEventListener("click", doSearch);
-
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      doSearch();
-    }
-  });
-  input.addEventListener("input", () => {
-    input.value = input.value.replace(/\D/g, '');
-  });
-
-  wrapper.appendChild(input);
-  wrapper.appendChild(icon);
-
-  searchF.appendChild(wrapper);
-
-  input.focus();
 });
-
-function showFriendPanel(friend: Friend) {
-  panel.show(`
-    <h2 class="panel-title text-lg mb-4">Friend Found</h2>
-
-    <div class="flex items-center border rounded-lg p-3 gap-4">
-      <img 
-        src="/assets/user/placeholder.png" 
-        alt="${friend.username}"
-        class="w-14 h-14 rounded-full"
-        draggable="false"
-      />
-
-      <div class="flex flex-col flex-1">
-        <span class="text-white font-semibold text-lg">
-          ${friend.username}
-        </span>
-        <span class="text-gray-400 text-sm">
-          Code: ${friend.uid}
-        </span>
-      </div>
-
-      <button 
-        id="sendFriendRequest"
-        class="panel-btn"
-      >
-        Invia amicizia
-      </button>
-    </div>
-
-    <button id="closeFriendPanel" class="panel-btn mt-4">
-      CLOSE
-    </button>
-  `);
-
-  document
-    .getElementById("closeFriendPanel")
-    ?.addEventListener("click", () => panel.hide());
-
-  document
-    .getElementById("sendFriendRequest")
-    ?.addEventListener("click", () => {
-      sendFriendRequest(friend, user.uid);
-    });
-}
-
-async function sendFriendRequest(friend: Friend, UserId: string) {
-  try {
-    const res = await fetch(
-      `http://localhost:7071/api/send_request`,
-      {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ friend, userId: UserId })
-      }
-    );
-
-    if (!res.ok) {
-      const text = await res.text(); // leggi testo grezzo
-      throw new Error(`HTTP ${res.status}: ${text}`);
-    }
-
-    let updatedUser: User | null = null;
-    try {
-      updatedUser = await res.json(); // prova a parsare JSON
-    } catch {
-      console.warn("Risposta vuota o non JSON");
-    }
-
-    if (updatedUser) user = updatedUser;
-
-    panel.show(`
-      <h2 class="panel-title text-lg mb-4">Success</h2>
-      <p class="text-gray-400">Friend request sent</p>
-      <button class="panel-btn mt-4" id="closeSuccess">CLOSE</button>
-    `);
-
-    document.getElementById("closeSuccess")
-      ?.addEventListener("click", () => panel.hide());
-
-  } catch (err) {
-    console.error("Errore invio richiesta:", err);
-    alert("Errore invio richiesta");
-  }
-}

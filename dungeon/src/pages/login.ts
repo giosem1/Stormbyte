@@ -1,12 +1,9 @@
+import { setSession } from "../utils/session";
 const loginBtn = document.getElementById("login-btn") as HTMLButtonElement;
 const usernameInput = document.getElementById("username") as HTMLInputElement;
 const passwordInput = document.getElementById("password") as HTMLInputElement;
 const registerLink = document.getElementById("register-link") as HTMLSpanElement;
 
-interface UserLogin{
-  username: string,
-  password: string
-}
 loginBtn.addEventListener("click", async () => {
   const username = usernameInput.value.trim();
   const password = passwordInput.value.trim();
@@ -17,7 +14,7 @@ loginBtn.addEventListener("click", async () => {
   }
 
    try {
-    const userData = await loginUser({ username, password });
+    const userData = await loginUser(username, password );
     localStorage.setItem("user", JSON.stringify(userData));
     window.location.href = "homepage.html";
 
@@ -26,28 +23,14 @@ loginBtn.addEventListener("click", async () => {
   }
 });
 
-export async function loginUser(data: UserLogin) {
-  const response = await fetch("http://localhost:7071/api/login", {
+export async function loginUser(username: string, password: string) {
+  const res = await fetch("http://localhost:7071/api/login", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(data)
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password })
   });
-
-  const text = await response.text();
-
-  if (!text) {
-    throw new Error("Risposta vuota dal server");
-  }
-
-  const result = JSON.parse(text);
-
-  if (!response.ok) {
-    throw new Error(result.error || "Errore di accesso");
-  }
-
-  return result;
+  const data = await res.json();
+  setSession({ user: data.user, token: data.token });
 }
 
 registerLink.addEventListener("click", () => {

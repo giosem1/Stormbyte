@@ -7,7 +7,6 @@ app.http("search_friend", {
   authLevel: "anonymous",
   handler: async (req, ctx): Promise<HttpResponseInit> => {
     const friend_code= req.query.get("code") ?? "";
-    console.log(friend_code)
     const client = await getMongoClient();
     const collection = client.db("stormbyte-db").collection<User>("users");
 
@@ -22,7 +21,6 @@ app.http("search_friend", {
         uid: friend.uid,
         profImg: friend.profileImage
     }
-    console.log(sendFriend)
     return {
       status: 200,
       headers: { "Content-Type": "application/json" },

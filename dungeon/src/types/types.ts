@@ -11,7 +11,7 @@ export interface User {
     profileImage?: string,
     friends: Friend[]
     inventory?: any[],
-    dungeons?: any[],
+    dungeons?: Dungeon[],
 }
 
 export interface Dungeon{

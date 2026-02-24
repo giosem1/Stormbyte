@@ -257,3 +257,31 @@ button.panel-btn:hover {
   bottom: 0;
   right: 0;
 }
+
+/* Notification */
+#notificationBell{
+  position: fixed;
+  top: 30px;
+  right: 30px;
+  width: 100px;
+  height: 100px;
+  cursor: pointer;
+  z-index: 1000;
+}
+
+#notificationBadge {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  min-width: 28px;
+  height: 28px;
+  background: red;
+  color: white;
+  border-radius: 50%;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  font-size: 14px;
+  font-weight: bold;
+  z-index: 1001;
+}

@@ -13,12 +13,12 @@
 <body>
   <div id="register-box">
         <h2>Registration</h2>
-        <input type="text" id="new-username" placeholder="Username" />
+        <input type="text" id="new-username" placeholder="Username" autocomplete="off"/>
         <ul id="username-errors" class="text-red-400 text-xs mt-2 space-y-1"></ul>
         <div class="password-wrapper">
           <input type="password" id="new-password" placeholder="Password" />
           <button type="button" id="toggle-password" aria-label="Mostra password">
-            <img id="toggle-password-icon" src="/assets/icons/toggleOpen.png" alt="Mostra password"/>
+            <img id="toggle-password-icon" src="/assets/icons/toggleClosed.png" alt="Mostra password"/>
           </button>
         </div>
         <ul id="password-errors" class="text-red-400 text-xs mt-2 space-y-1"></ul>
