@@ -6,7 +6,7 @@ import { RoomSave, User } from "../types/types";
 interface DungeonSave {
   id: string;
   code: string;
-  nameDungeon: string;
+  name: string;
   owner: string;
   collaborators: string[];
   rooms: RoomSave[];
@@ -18,12 +18,12 @@ app.http("save_dungeon", {
   handler: async (req): Promise<HttpResponseInit> => {
 
     const body = await req.json() as DungeonSave;
-    const { id, code, nameDungeon, owner, collaborators, rooms } = body;
+    const { id, code, name, owner, collaborators, rooms } = body;
 
     const dungeonSave = {
       id,
       code,
-      nameDungeon,
+      name,
       owner,
       collaborators,
       rooms
@@ -33,7 +33,8 @@ app.http("save_dungeon", {
     const blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
     const containerClient = blobServiceClient.getContainerClient("dungeon");
 
-    const fileName = `${id}.json`;
+    const safeName = name.replace(/[^a-z0-9_-]/gi, '_');
+    const fileName = `${safeName}_${id}.json`;
     const blockBlobClient = containerClient.getBlockBlobClient(fileName);
 
     const jsonString = JSON.stringify(dungeonSave);
@@ -57,7 +58,7 @@ app.http("save_dungeon", {
           dungeons: {
             id,
             code,
-            nameDungeon,
+            name,
             blobUrl
           }
         }

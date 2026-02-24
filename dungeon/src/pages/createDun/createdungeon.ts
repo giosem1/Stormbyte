@@ -1,27 +1,33 @@
 import type { User } from "../../types/types";
 import GenericPanel from "../../ui/pannel";
 import { buildDungeonSave } from "./savedungeon";
+import { getSession } from "../../utils/session";
 type MenuCategory = "rooms" | "enemies" | "traps";
 
 const menuButtons = document.querySelectorAll<HTMLButtonElement>(".menu-btn");
 const itemsContainer = document.getElementById("itemsContainer") as HTMLDivElement;
 const codeDungeon = document.getElementById("code-label") as HTMLParagraphElement;
 
+function currentUser(): User {
+  const session = getSession();
 
-const rawUser = localStorage.getItem("user")
-if (!rawUser) {
-  window.location.href = "login.html";
-  throw new Error("User non autenticato");
+  if (!session || !session.user || !session.token) {
+    window.location.href = "login.html";
+    throw new Error("Sessione non valida");
+  }
+
+  return session.user;
 }
 
-const user: User = JSON.parse(rawUser)
+let invitedFriends: string[] = [];
+const MAX_INVITES = 5;
 
 window.addEventListener("DOMContentLoaded", () => {
   const panel = new GenericPanel("panel", "panel-content", "panel-overlay");
   const invite = document.getElementById("sent-label") as HTMLParagraphElement;
 
   invite.addEventListener("click", () => {
-    const friendsList = user.friends
+    const friendsList = currentUser().friends
 
     const friendsHTML = friendsList.map(friend => `
       <div class="friend-row flex items-center justify-between border rounded-lg p-3">
@@ -46,11 +52,45 @@ window.addEventListener("DOMContentLoaded", () => {
 
     document.querySelectorAll(".invite-btn").forEach((btn, i) => {
       const button = btn as HTMLButtonElement;
-      button.addEventListener("click", () => {
+      button.addEventListener("click", async () => {
         const friend = friendsList[i];
-        console.log(`Invito inviato a: ${friend.username} (UID: ${friend.uid})`);
+
+        if (invitedFriends.includes(friend.uid)) return;
+
+        if (invitedFriends.length >= MAX_INVITES) {
+          alert("Puoi invitare massimo 5 amici.");
+          return;
+        }
+
+        invitedFriends.push(friend.uid);
+
+        console.log("Invitati:", invitedFriends);
+
         button.textContent = "✓";
         button.disabled = true;
+        try {
+          const session = getSession();
+          if (!session) throw new Error("Sessione non valida");
+
+          await fetch("http://localhost:7071/api/invite_dungeon", {
+            method: "POST",
+            headers: { 
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session.token}`
+            },
+            body: JSON.stringify({
+              toUserId: friend.uid,
+              fromUserId: session.user.uid,
+              fromUsername: session.user.username,
+              dungeonCode
+            })
+          });
+
+          console.log(`Invito dungeon inviato a ${friend.username} (${friend.uid})`);
+        } catch (err) {
+          console.error("Errore invio invito dungeon:", err);
+          alert("Errore invio invito a " + friend.username);
+        }
       });
     });
 
@@ -138,19 +178,6 @@ back.addEventListener("click", ()=>{
   window.location.href = "homepage.html"
 })
 
-function downloadJSON(data: object) {
-  const blob = new Blob(
-    [JSON.stringify(data, null, 2)],
-    { type: "application/json" }
-  );
-
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "dungeon.json";
-  a.click();
-
-}
 
 const save = document.getElementById("save") as HTMLParagraphElement;
 const nameInput = document.getElementById("dungeon-name-input") as HTMLInputElement;
@@ -171,7 +198,5 @@ save.addEventListener("click", () => {
     return;
   }
 
-  const dungeon = buildDungeonSave(user.uid);
-  downloadJSON(dungeon);
-  
+  buildDungeonSave(currentUser().uid, invitedFriends);
 });

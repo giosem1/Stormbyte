@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { Torch } from "../scenes/torch";
 import GenericPanel from "../ui/pannel";
-import { clearSession, getSession } from "../utils/session";
+import { clearSession, getSession, setSession } from "../utils/session";
 import { createConnection, startConnection, onFriendRequest } from "../utils/signalrClient";
 import { PREVIEW_TO_CLASS, type Friend, type PlayerClass, type User } from "../types/types";
 
@@ -36,6 +36,15 @@ const uid = document.getElementById("usercode") as HTMLParagraphElement;
 username.textContent = user.username
 uid.textContent = user.uid
 
+function currentUser(): User {
+  const session = getSession();
+  if (!session || !session.user) {
+    window.location.href = "login.html";
+    throw new Error("User non autenticato");
+  }
+  return session.user;
+}
+
 let notifications: any[] = [];
 
 const connection = createConnection(user);
@@ -49,6 +58,24 @@ onFriendRequest((notif) => {
     });
     updateNotificationBadge();
 });
+connection.on("UserUpdated", (updatedUser) => {
+  const currentSession = getSession();
+  if (!currentSession) return;
+
+  setSession({
+    ...currentSession,
+    user: updatedUser
+  });
+
+  refreshUI();
+});
+function refreshUI() {
+  const currentUser = getSession()?.user;
+  if (!currentUser) return;
+
+  username.textContent = currentUser.username;
+  uid.textContent = currentUser.uid;
+}
 
 type EventType = "friend_request" | "class_change" | "dungeon_joined";
 
@@ -109,6 +136,32 @@ notificationBell.addEventListener("click", () => {
       `;
     }
 
+  if (n.type === "dungeon_invite") {
+    return `
+      <div class="flex flex-col border rounded-lg p-3 mb-2">
+        <span class="text-white font-semibold">
+        <span class="text-yellow-400 font-bold">
+          ${n.ownerUsername}
+        </span>
+        ti ha invitato nel dungeon "
+        <span class="text-cyan-400 font-semibold">
+          ${n.dungeonName}
+        </span>"
+        </span>
+
+        <div class="flex gap-2 mt-2">
+          <button class="panel-btn join" data-index="${index}">
+            Partecipa
+          </button>
+
+          <button class="panel-btn reject" data-index="${index}">
+            Rifiuta
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
     return "";
   }).join("");
 
@@ -167,6 +220,19 @@ connection.on("FriendRequestReceived", (notification) => {
         timestamp: notification.timestamp
     });
     updateNotificationBadge();
+});
+connection.on("DungeonInviteReceived", (payload) => {
+
+  notifications.push({
+    type: "dungeon_invite",
+    dungeonCode: payload.dungeonCode,
+    dungeonName: payload.dungeonName,
+    ownerUid: payload.ownerUid,
+    ownerUsername: payload.ownerUsername,
+    timestamp: payload.timestamp
+  });
+
+  updateNotificationBadge();
 });
 
 // Menu
@@ -483,7 +549,7 @@ async function updateClass(selectedClass: string, UserId: string){
 
 // Friend List
 friends.addEventListener("click", ()=>{
-  const friendsList = user.friends
+  const friendsList = currentUser().friends
   const friendsHTML = friendsList.map(friend => `
       <div class="friend-row flex items-center justify-between border rounded-lg p-3">
           <div class="flex items-center">
@@ -511,7 +577,7 @@ friends.addEventListener("click", ()=>{
 
 // Dungeon List
 dungeons.addEventListener("click", ()=>{
-  const dungeonList = user.dungeons
+  const dungeonList = currentUser().dungeons
   const dungeonHTML = dungeonList?.map(dungeon => `
     <div class="flex items-center border rounded-lg p-3">
         <div class="flex flex-col">

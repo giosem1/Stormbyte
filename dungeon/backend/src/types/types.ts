@@ -15,7 +15,7 @@ export interface User {
   dungeons: {
     id: string;
     code: string;
-    nameDungeon: string;
+    name: string;
     blobUrl?: string;
   }[];
 }

@@ -9,8 +9,7 @@ const codeDungeon = document.getElementById(
   "code-label"
 ) as HTMLParagraphElement;
 
-//TODO: Add collaborators when implemnts SignalR
-export function buildDungeonSave(owner: string): DungeonSave {
+export function buildDungeonSave(owner: string, invited: string[]): DungeonSave {
 
   const dungeonName = dungeonNameInput.value.trim();
   const dungeonCode = codeDungeon.textContent
@@ -44,7 +43,7 @@ export function buildDungeonSave(owner: string): DungeonSave {
   const _id= crypto.randomUUID()
   const code = dungeonCode
   const name = dungeonName
-  const collaborators: string[]= []
+  const collaborators: string[]= invited
   const dungeon: Dungeon = {
     _id,
     code,

@@ -48,7 +48,7 @@ app.http("login", {
       class: player.classe,
       avatar: player.profileImage,
       friends: player.friends || [],
-      dungeons: player.dungeons
+      dungeons: player.dungeons || []
     };
     console.log(safeUser)
     return {
