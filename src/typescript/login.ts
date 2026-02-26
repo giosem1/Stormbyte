@@ -39,7 +39,7 @@ registerLink.addEventListener("click", () => {
 
 
 import Phaser from "phaser";
-import { Torch } from "../scenes/torch";
+import { Torch } from "./scenes/torch";
 
 const config = {
   type: Phaser.AUTO,

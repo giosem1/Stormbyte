@@ -9,10 +9,16 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
     "typescript": "~5.9.3",
     "vite": "^7.2.4"
   },
   "dependencies": {
+    "@azure/functions": "^4.11.1",
+    "@azure/storage-blob": "^12.30.0",
+    "@microsoft/signalr": "^10.0.0",
+    "bcrypt": "^6.0.0",
+    "mongodb": "^7.1.0",
     "phaser": "^3.90.0"
   }
 }

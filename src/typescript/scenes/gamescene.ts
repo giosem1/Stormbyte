@@ -1,7 +1,7 @@
 import Phaser from "phaser";
-import GenericPanel from "../ui/pannel";
-import { ENEMY_CONFIG, TRAP_CONFIG, type Dungeon, type ItemType, type RoomSave, type User } from "../types/types";
+import { ENEMY_CONFIG, TRAP_CONFIG, type Dungeon, type ItemType, type RoomSave, type User } from "../../types/types";
 import { createArcherAnimations, createEnemyAnimations, createHeartAnimations, createKnightAnimations, createMageAnimations, trapAnimation } from "./animation";
+import GenericPanel from "../../ui/pannel";
 
 const SCALE_RULES: Record<ItemType, number> = {
   room: 1.2,

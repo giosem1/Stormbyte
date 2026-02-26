@@ -1,4 +1,4 @@
-import { PREVIEW_CONFIG, mountPreview, unmountPreview } from "../pages/previewanimation";
+import { PREVIEW_CONFIG, mountPreview, unmountPreview } from "./previewanimation";
 import type { User } from "../types/types";
 
 type PlayerClass = "Knight" | "Mage" | "Archer";

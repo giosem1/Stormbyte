@@ -1,11 +1,11 @@
 import Phaser from "phaser";
-import { Torch } from "../scenes/torch";
+import { Torch } from "./scenes/torch";
 import GenericPanel from "../ui/pannel";
 import { clearSession, getSession, setSession } from "../utils/session";
 import { createConnection, startConnection, onFriendRequest } from "../utils/signalrClient";
 import { PREVIEW_TO_CLASS, type Friend, type PlayerClass, type User } from "../types/types";
 
-import { PREVIEW_CONFIG, mountPreview, unmountPreview } from "../pages/previewanimation"; 
+import { PREVIEW_CONFIG, mountPreview, unmountPreview } from "./previewanimation"; 
 const config = {
    type: Phaser.AUTO,
    width: window.innerWidth,

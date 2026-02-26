@@ -1,4 +1,4 @@
-import { User } from './../../src/types/types';
+import { User } from '../types/types';
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { getMongoClient } from "../db/mongo";
 import { Friend } from "../types/types";
