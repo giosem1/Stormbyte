@@ -4,6 +4,7 @@ interface DungeonInviteBody {
   fromUserId: string;
   fromUsername: string;
   dungeonCode: string;
+  dungeonName: string;
 }
 
 app.http("invite_dungeon", {
@@ -17,13 +18,13 @@ app.http("invite_dungeon", {
     }
   ],
   handler: async (req, context) => {
-    const { toUserId, fromUserId, fromUsername, dungeonCode } = await req.json() as DungeonInviteBody;
-
+    const { toUserId, fromUserId, fromUsername, dungeonCode, dungeonName } = await req.json() as DungeonInviteBody;
+    console.log(dungeonCode)
     
     context.extraOutputs.set("signalRMessages", [{
       userId: toUserId,
       target: "DungeonInviteReceived",
-      arguments: [{ ownerUid: fromUserId, ownerUsername: fromUsername, dungeonCode }]
+      arguments: [{ ownerUid: fromUserId, ownerUsername: fromUsername, dungeonCode, dungeonName }]
     }]);
 
     return { jsonBody: { success: true } };

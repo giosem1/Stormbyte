@@ -4,6 +4,7 @@ export interface Friend {
   profileImage: string;
 }
 export interface User {
+    [x: string]: any;
     uid: string,
     username: string,
     password: string,
@@ -109,4 +110,24 @@ export const PREVIEW_TO_CLASS: Record<string, PlayerClass> = {
   knight: "Knight",
   mage: "Mage",
   archer: "Archer"
+};
+
+export type DungeonItem = {
+  rotation: any;
+  id: string;
+  type: "room" | "enemy" | "trap";
+  x: number;
+  y: number;
+};
+
+export type DungeonState = {
+  items: DungeonItem[];
+};
+
+export type Lobby = {
+  dungeonCode: string;
+  ownerId: string;
+  users: string[];
+  state: DungeonState;
+  createdAt: number;
 };

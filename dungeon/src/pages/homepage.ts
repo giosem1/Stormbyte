@@ -64,7 +64,10 @@ connection.on("UserUpdated", (updatedUser) => {
 
   setSession({
     ...currentSession,
-    user: updatedUser
+    user: {
+      ...currentSession.user,
+      ...updatedUser
+    }
   });
 
   refreshUI();
@@ -120,7 +123,10 @@ notificationBell.addEventListener("click", () => {
       return `
         <div class="flex flex-col border rounded-lg p-3 mb-2">
           <span class="text-white font-semibold">
-            ${n.fromUsername} ti ha inviato una richiesta di amicizia
+            <span class="text-yellow-400 font-bold">
+              ${n.fromUsername}
+            </span>
+            ti ha inviato una richiesta di amicizia
           </span>
 
           <div class="flex gap-2 mt-2">
@@ -137,30 +143,31 @@ notificationBell.addEventListener("click", () => {
     }
 
   if (n.type === "dungeon_invite") {
-    return `
-      <div class="flex flex-col border rounded-lg p-3 mb-2">
-        <span class="text-white font-semibold">
+  const dungeonNameText = n.dungeonName || "per un'avventura epica!";
+  return `
+    <div class="flex flex-col border rounded-lg p-3 mb-2">
+      <span class="text-white font-semibold break-words">
         <span class="text-yellow-400 font-bold">
           ${n.ownerUsername}
         </span>
-        ti ha invitato nel dungeon "
+        ti ha invitato nel dungeon 
         <span class="text-cyan-400 font-semibold">
-          ${n.dungeonName}
-        </span>"
+          ${dungeonNameText}
         </span>
+      </span>
 
-        <div class="flex gap-2 mt-2">
-          <button class="panel-btn join" data-index="${index}">
-            Partecipa
-          </button>
+      <div class="flex gap-2 mt-2">
+        <button class="panel-btn join" data-index="${index}">
+          Partecipa
+        </button>
 
-          <button class="panel-btn reject" data-index="${index}">
-            Rifiuta
-          </button>
-        </div>
+        <button class="panel-btn reject" data-index="${index}">
+          Rifiuta
+        </button>
       </div>
-    `;
-  }
+    </div>
+  `;
+}
 
     return "";
   }).join("");
@@ -185,6 +192,49 @@ notificationBell.addEventListener("click", () => {
       panel.hide();
     });
   });
+
+  document.querySelectorAll(".join").forEach(btn => {
+  btn.addEventListener("click", async (e: any) => {
+
+    const index = e.target.dataset.index;
+    const notif = notifications[index];
+
+    try {
+      const session = getSession();
+      if (!session) throw new Error("Sessione non valida");
+
+      const res = await fetch("http://localhost:7071/api/join_lobby", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.token}`
+        },
+        body: JSON.stringify({
+          dungeonCode: notif.dungeonCode,
+          userId: session.user.uid
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error);
+      }
+
+      notifications.splice(index, 1);
+      panel.hide();
+      updateNotificationBadge();
+
+      localStorage.setItem("dungeonCode", notif.dungeonCode);
+
+      window.location.href = "createDungeon.html";
+
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Non è stato possibile partecipare al dungeon");
+    }
+  });
+});
   document.querySelectorAll(".reject").forEach(btn => {
     btn.addEventListener("click", (e: any) => {
       const index = e.target.dataset.index;
@@ -212,15 +262,15 @@ function updateNotificationBadge() {
     badge.style.display = "none";
   }
 }
-connection.on("FriendRequestReceived", (notification) => {
-    notifications.push({
-        type: "friend_request",
-        fromUid: notification.fromUserId,
-        fromUsername: notification.fromUserName,
-        timestamp: notification.timestamp
-    });
-    updateNotificationBadge();
-});
+// connection.on("FriendRequestReceived", (notification) => {
+//     notifications.push({
+//         type: "friend_request",
+//         fromUid: notification.fromUserId,
+//         fromUsername: notification.fromUserName,
+//         timestamp: notification.timestamp
+//     });
+//     updateNotificationBadge();
+// });
 connection.on("DungeonInviteReceived", (payload) => {
 
   notifications.push({
@@ -231,6 +281,7 @@ connection.on("DungeonInviteReceived", (payload) => {
     ownerUsername: payload.ownerUsername,
     timestamp: payload.timestamp
   });
+  console.log(payload.dungeonName)
 
   updateNotificationBadge();
 });

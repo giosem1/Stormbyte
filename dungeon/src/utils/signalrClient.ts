@@ -1,7 +1,7 @@
 import * as signalR from "@microsoft/signalr";
 import type { User } from "../types/types";
 
-let connection: signalR.HubConnection;
+export let connection: signalR.HubConnection;
 
 export function createConnection(user: User) {
     connection = new signalR.HubConnectionBuilder()
@@ -32,4 +32,11 @@ export function onFriendRequest(callback: (data: any) => void) {
 export function sendFriendRequestSignal(data: any) {
     connection.invoke("SendFriendRequest", data)
         .catch(console.error);
+}
+
+export function onDungeonUpdated(callback: (state: any) => void) {
+    connection.on("dungeonUpdated", callback);
+}
+export function onUserJoinedLobby(callback: (data: any) => void) {
+    connection.on("UserJoinedLobby", callback);
 }

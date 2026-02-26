@@ -22,10 +22,10 @@ function currentUser(): User {
 let invitedFriends: string[] = [];
 const MAX_INVITES = 5;
 
-window.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("DOMContentLoaded", async () => {
   const panel = new GenericPanel("panel", "panel-content", "panel-overlay");
   const invite = document.getElementById("sent-label") as HTMLParagraphElement;
-
+  await createLobbyOnServer();
   invite.addEventListener("click", () => {
     const friendsList = currentUser().friends
 
@@ -82,11 +82,10 @@ window.addEventListener("DOMContentLoaded", () => {
               toUserId: friend.uid,
               fromUserId: session.user.uid,
               fromUsername: session.user.username,
-              dungeonCode
+              dungeonCode,
+              dungeonName: nameInput.value.trim()
             })
           });
-
-          console.log(`Invito dungeon inviato a ${friend.username} (${friend.uid})`);
         } catch (err) {
           console.error("Errore invio invito dungeon:", err);
           alert("Errore invio invito a " + friend.username);
@@ -160,6 +159,31 @@ if (!dungeonCode) {
 }
 
 codeDungeon.textContent = `Codice: ${dungeonCode}`
+async function createLobbyOnServer() {
+  const session = getSession();
+  if (!session) return;
+
+  const response = await fetch("http://localhost:7071/api/create_lobby", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.token}`
+    },
+    body: JSON.stringify({
+      dungeonCode,
+      userId: session.user.uid
+    })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    alert(data.error);
+    return;
+  }
+
+  console.log("Lobby:", data);
+}
 
 menuButtons.forEach(button => {
   button.addEventListener("click", () => {

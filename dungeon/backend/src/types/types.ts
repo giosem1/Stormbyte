@@ -44,3 +44,22 @@ export interface TrapSave {
   x: number;
   y: number;
 }
+
+export type DungeonItem = {
+  id: string;
+  type: "room" | "enemy" | "trap";
+  x: number;
+  y: number;
+};
+
+export type DungeonState = {
+  items: DungeonItem[];
+};
+
+export type Lobby = {
+  dungeonCode: string;
+  ownerId: string;
+  users: string[];
+  state: DungeonState;
+  createdAt: number;
+};
