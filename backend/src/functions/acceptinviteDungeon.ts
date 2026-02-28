@@ -1,8 +1,9 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { addUserToLobby, getLobby } from "../shared/lobbyStore";
-interface AcceptLobby{
-  dungeonCode: string,
-  userId: string
+
+interface AcceptLobby {
+  dungeonCode: string;
+  userId: string;
 }
 
 app.http("join_lobby", {
@@ -13,7 +14,7 @@ app.http("join_lobby", {
     {
       type: "signalR",
       name: "signalRMessages",
-      hubName: "dungeonHub"
+      hubName: "notifications"
     }
   ],
   handler: async (request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
@@ -37,23 +38,31 @@ app.http("join_lobby", {
       }
 
       const updatedLobby = addUserToLobby(dungeonCode, userId);
-      
+
       context.extraOutputs.set("signalRMessages", [
-          {
-            type: "addToGroup",
-            groupName: dungeonCode,
-            userId: userId
-          }
+        {
+          type: "addToGroup",
+          userId: userId,
+          groupName: dungeonCode
+        },
+        {
+          target: "dungeonUpdated",
+          groupName: dungeonCode,
+          arguments: [updatedLobby]
+        }
       ]);
+
       return {
         status: 200,
-        jsonBody: updatedLobby
+        jsonBody: lobby
       };
 
     } catch (err: any) {
+      console.error("JOIN LOBBY ERROR:", err);
+
       return {
-        status: 400,
-        jsonBody: { error: err.message }
+        status: 500,
+        jsonBody: { error: "Errore interno server" }
       };
     }
   }

@@ -142,32 +142,32 @@ notificationBell.addEventListener("click", () => {
       `;
     }
 
-  if (n.type === "dungeon_invite") {
-  const dungeonNameText = n.dungeonName || "per un'avventura epica!";
-  return `
-    <div class="flex flex-col border rounded-lg p-3 mb-2">
-      <span class="text-white font-semibold break-words">
-        <span class="text-yellow-400 font-bold">
-          ${n.ownerUsername}
-        </span>
-        ti ha invitato nel dungeon 
-        <span class="text-cyan-400 font-semibold">
-          ${dungeonNameText}
-        </span>
-      </span>
+    if (n.type === "dungeon_invite") {
+      const dungeonNameText = n.dungeonName || "per un'avventura epica!";
+      return `
+        <div class="flex flex-col border rounded-lg p-3 mb-2">
+          <span class="text-white font-semibold break-words">
+            <span class="text-yellow-400 font-bold">
+              ${n.ownerUsername}
+            </span>
+            ti ha invitato nel dungeon 
+            <span class="text-cyan-400 font-semibold">
+              ${dungeonNameText}
+            </span>
+          </span>
 
-      <div class="flex gap-2 mt-2">
-        <button class="panel-btn join" data-index="${index}">
-          Partecipa
-        </button>
+          <div class="flex gap-2 mt-2">
+            <button class="panel-btn join" data-index="${index}">
+              Partecipa
+            </button>
 
-        <button class="panel-btn reject" data-index="${index}">
-          Rifiuta
-        </button>
-      </div>
-    </div>
-  `;
-}
+            <button class="panel-btn reject" data-index="${index}">
+              Rifiuta
+            </button>
+          </div>
+        </div>
+      `;
+    }
 
     return "";
   }).join("");
@@ -281,7 +281,6 @@ connection.on("DungeonInviteReceived", (payload) => {
     ownerUsername: payload.ownerUsername,
     timestamp: payload.timestamp
   });
-  console.log(payload.dungeonName)
 
   updateNotificationBadge();
 });
