@@ -13,6 +13,11 @@ app.http("join_lobby", {
   extraOutputs: [
     {
       type: "signalR",
+      name: "signalRGroupActions",
+      hubName: "notifications"
+    },
+    {
+      type: "signalR",
       name: "signalRMessages",
       hubName: "notifications"
     }
@@ -37,18 +42,21 @@ app.http("join_lobby", {
         };
       }
 
+      context.extraOutputs.set("signalRGroupActions", [
+        {
+          action: "add",
+          userId: userId,
+          groupName: dungeonCode
+        }
+      ]);
+
       const updatedLobby = addUserToLobby(dungeonCode, userId);
 
       context.extraOutputs.set("signalRMessages", [
         {
-          type: "addToGroup",
-          userId: userId,
-          groupName: dungeonCode
-        },
-        {
-          target: "dungeonUpdated",
+          target: "UserJoinedLobby",
           groupName: dungeonCode,
-          arguments: [updatedLobby]
+          arguments: [{ userId }]
         }
       ]);
 

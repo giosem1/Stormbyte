@@ -253,11 +253,9 @@ export default class GameScene extends Phaser.Scene {
           </div>
           <button id="closeInvite" class="panel-btn mt-4 w-full text-center text-white font-bold">CLOSE</button>
       `);
-      document.querySelectorAll(".invite-btn").forEach((btn, i) => {
+      document.querySelectorAll(".invite-btn").forEach((btn) => {
           const button = btn as HTMLButtonElement;
           button.addEventListener("click", () => {
-              const friend = friendsList[i];
-              console.log(`Invito inviato a: ${friend.username} (UID: ${friend.uid})`);
               button.textContent = "✓";
               button.disabled = true;
           });
@@ -293,9 +291,6 @@ export default class GameScene extends Phaser.Scene {
       this.spawnRandomItems();
       this.initItemPickup();
     });
-    this.load.on('filecomplete', (key: string) => {
-      console.log("Caricato file: ", key);
-    });
     this.load.on('loaderror', (file: any) => {
       console.error("Errore caricamento: ", file.key, file.src);
     });
@@ -326,7 +321,6 @@ export default class GameScene extends Phaser.Scene {
         }
 
         if (this.dungeon && this.dungeon.name) {
-          console.log(this.dungeon.name)
             const dungeonNameText = this.add.text(0, -heartSize, this.dungeon.name, {
                 fontFamily: '"Press Start 2P"',
                 fontSize: '20px',
@@ -493,7 +487,6 @@ export default class GameScene extends Phaser.Scene {
   private collectItem(item: Phaser.GameObjects.Image) {
     const slotIndex = this.inventorySlots.findIndex(s => !s.getData("filled"));
     if (slotIndex === -1) {
-        console.log("Inventario pieno!");
         return;
     }
 
@@ -508,7 +501,6 @@ export default class GameScene extends Phaser.Scene {
 
     item.destroy();
     this.itemsInScene = this.itemsInScene.filter(i => i !== item);
-    console.log("Raccolto:", slot.getData("itemKey"));
   }
 
   // Room physic
@@ -604,7 +596,6 @@ export default class GameScene extends Phaser.Scene {
         if (!config) return;
 
         trap.setData("activated", true);
-        console.log(config.anim)
         
         trap.play(config.anim);
         trap.once("animationcomplete", () => {

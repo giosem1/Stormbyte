@@ -6,6 +6,11 @@ const canvas = document.getElementById("infinite-canvas") as HTMLDivElement;
 let draggingImage: HTMLImageElement | null = null;
 let offsetX = 0;
 let offsetY = 0;
+let sendEventGlobal: ((type: string, payload: any) => void) | null = null;
+
+export function setSendDungeonEvent(fn: (type: string, payload: any) => void) {
+  sendEventGlobal = fn;
+}
 
 const SNAP_DISTANCE = 100;
 type Side = "top" | "bottom" | "left" | "right";
@@ -221,7 +226,7 @@ document.addEventListener("mousedown", (e) => {
   draggingImage = newImg;
 });
 
-function enableDrag(img: HTMLImageElement, item: PlacedItem) {
+export function enableDrag(img: HTMLImageElement, item: PlacedItem) {
   img.addEventListener("mousedown", (e) => {
     if (e.button !== 0) return;
     e.preventDefault();
@@ -250,6 +255,15 @@ window.addEventListener("mousemove", (e) => {
   if (item) {
     item.x = x;
     item.y = y;
+    if (sendEventGlobal) {
+      sendEventGlobal("MOVE_ROOM", {
+        roomId: item.id,
+        x: item.x,
+        y: item.y,
+        src: item.src,
+        type: item.type
+      });
+    }
   }
 });
 
@@ -291,6 +305,15 @@ window.addEventListener("mouseup", () => {
 
   draggingImage = null;
   saveItemsToStorage();
+  if (sendEventGlobal) {
+    sendEventGlobal("MOVE_ROOM", {
+      roomId: item.id,
+      x: item.x,
+      y: item.y,
+      src: item.src,
+      type: item.type
+    });
+  }
 });
 
 function isOverlapping(a: PlacedItem, b: PlacedItem): boolean {

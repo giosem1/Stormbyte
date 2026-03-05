@@ -1,6 +1,6 @@
 import { Lobby } from "../types/types";
 
-const lobbies: Record<string, Lobby> = {};
+const lobbies: Record<string, Lobby & { events?: any[] }> = {};
 
 const MAX_USERS = 5;
 
@@ -9,13 +9,14 @@ export function createLobby(dungeonCode: string, ownerId: string): Lobby {
     throw new Error("Lobby già esistente");
   }
 
-  const lobby: Lobby = {
+  const lobby: Lobby & { events?: any[] } = {
     dungeonCode,
     ownerId,
     users: [ownerId],
     state: {
       items: []
     },
+    events: [],
     createdAt: Date.now()
   };
 
@@ -24,11 +25,11 @@ export function createLobby(dungeonCode: string, ownerId: string): Lobby {
   return lobby;
 }
 
-export function getLobby(dungeonCode: string): Lobby | undefined {
+export function getLobby(dungeonCode: string): (Lobby & { events?: any[] }) | undefined {
   return lobbies[dungeonCode];
 }
 
-export function addUserToLobby(dungeonCode: string, userId: string): Lobby {
+export function addUserToLobby(dungeonCode: string, userId: string): (Lobby & { events?: any[] }) {
   const lobby = lobbies[dungeonCode];
 
   if (!lobby) {
@@ -58,14 +59,12 @@ export function removeUserFromLobby(dungeonCode: string, userId: string) {
     delete lobbies[dungeonCode];
   }
 }
+
 export function applyActionToState(state: any, action: any) {
-
   switch (action.type) {
-
     case "ADD_ITEM":
       state.items.push(action.payload);
       break;
-
     case "MOVE_ITEM":
       const item = state.items.find(i => i.id === action.payload.id);
       if (item) {
@@ -73,9 +72,30 @@ export function applyActionToState(state: any, action: any) {
         item.y = action.payload.y;
       }
       break;
-
     case "REMOVE_ITEM":
       state.items = state.items.filter(i => i.id !== action.payload.id);
       break;
   }
+}
+
+/**
+ * Aggiunge un evento alla lobby (es. MOVE_ROOM, CREATE_ROOM, ecc.)
+ */
+export function addDungeonEvent(dungeonCode: string, event: { userId: string, type: string, payload: any }): (Lobby & { events?: any[] }) {
+  const lobby = lobbies[dungeonCode];
+
+  if (!lobby) {
+    throw new Error("Lobby non trovata");
+  }
+
+  if (!lobby.events) {
+    lobby.events = [];
+  }
+
+  lobby.events.push(event);
+
+  // Se vuoi, puoi anche aggiornare lo stato della lobby in base all'azione
+  // applyActionToState(lobby.state, event);
+
+  return lobby;
 }

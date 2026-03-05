@@ -145,7 +145,6 @@ registerBtn.addEventListener("click", async () => {
 
   if (!isUsernameValid || !isPasswordValid || !isClassValid) return;
   if (selectedClass === null || selectedPreviewId === null) return;
-  console.log(selectedClass)
 
   const newUser: User = {
     uid: generateUID(),

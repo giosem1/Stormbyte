@@ -9,7 +9,6 @@ export function createKnightAnimations(anims: Phaser.Animations.AnimationManager
         });
     }
     if (!anims.exists("attackKnight")) {
-      console.log("active attack")
         anims.create({
             key: "attackKnight",
             frames: anims.generateFrameNumbers("kngAttack", { start: 0, end: 35 }),
@@ -37,7 +36,6 @@ export function createMageAnimations(anims: Phaser.Animations.AnimationManager) 
         });
     }
     if (!anims.exists("attackMage")) {
-      console.log("active attack")
         anims.create({
             key: "attackMage",
             frames: anims.generateFrameNumbers("mgAttack", { start: 0, end: 35 }),
@@ -66,7 +64,6 @@ export function createArcherAnimations(anims: Phaser.Animations.AnimationManager
         });
     }
     if (!anims.exists("attackArcher")) {
-      console.log("active attack")
         anims.create({
             key: "attackArcher",
             frames: anims.generateFrameNumbers("arcAttack", { start: 0, end: 35 }),

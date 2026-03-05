@@ -18,7 +18,6 @@ export async function startConnection() {
     if (!connection) throw new Error("Connection not initialized");
     try {
         await connection.start();
-        console.log("SignalR connected");
     } catch (err) {
         console.error("Errore connessione SignalR:", err);
         setTimeout(startConnection, 5000);
@@ -39,4 +38,20 @@ export function onDungeonUpdated(callback: (state: any) => void) {
 }
 export function onUserJoinedLobby(callback: (data: any) => void) {
     connection.on("UserJoinedLobby", callback);
+}
+
+export function onInitialDungeonState(callback: (state: any) => void) {
+    connection.on("initialDungeonState", callback);
+}
+
+export function onRoomMoved(callback: (data: any) => void) {
+    connection.on("RoomMoved", callback);
+}
+
+export function onRoomCreated(callback: (room: any) => void) {
+    connection.on("RoomCreated", callback);
+}
+
+export function onRoomDeleted(callback: (roomId: string) => void) {
+    connection.on("RoomDeleted", callback);
 }
