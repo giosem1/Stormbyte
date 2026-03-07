@@ -33,6 +33,7 @@ export function sendFriendRequestSignal(data: any) {
         .catch(console.error);
 }
 
+//Real-time synchronization for create dungeon
 export function onDungeonUpdated(callback: (state: any) => void) {
     connection.on("dungeonUpdated", callback);
 }
@@ -54,4 +55,9 @@ export function onRoomCreated(callback: (room: any) => void) {
 
 export function onRoomDeleted(callback: (roomId: string) => void) {
     connection.on("RoomDeleted", callback);
+}
+
+//Chat for create dungeon
+export function onChatMessage(callback: (data: any)=> void){
+    connection.on("ChatMessage", callback);
 }

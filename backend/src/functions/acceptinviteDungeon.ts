@@ -60,9 +60,20 @@ app.http("join_lobby", {
         }
       ]);
 
+      context.extraOutputs.set("signalRGrouActions", [
+        {
+          userId: userId,
+          groupName: dungeonCode,
+          action: "add" 
+        }
+      ]);
+
       return {
         status: 200,
-        jsonBody: lobby
+        jsonBody:{
+          success: true,
+          state: lobby.state 
+        }
       };
 
     } catch (err: any) {

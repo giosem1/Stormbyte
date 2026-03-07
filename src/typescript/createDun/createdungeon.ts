@@ -2,8 +2,8 @@ import type { User } from "../../types/types";
 import GenericPanel from "../../ui/pannel";
 import { buildDungeonSave } from "./savedungeon";
 import { getSession } from "../../utils/session";
-import { createConnection, startConnection, onRoomMoved } from "../../utils/signalrClient";
-import { enableDrag, setSendDungeonEvent } from "./positioning";
+import { createConnection, startConnection, onRoomMoved, onChatMessage } from "../../utils/signalrClient";
+import { enableDrag, setSendDungeonEvent, loadItemsFromStorage, spawnDefaultRoom } from "./positioning";
 import { state } from "./state";
 import "./movement";
 
@@ -125,6 +125,20 @@ export function initDungeonEditor() {
       }
       appendRoomToCanvas(el)
       isRemoteUpdate = false;
+    });
+
+    onChatMessage((data) => {
+      const messagesContainer = document.getElementById("messages") as HTMLDivElement;
+      if (!messagesContainer) return;
+
+      const msgElement = document.createElement("p");
+      const sender = data.username || "Sconosciuto";
+      const text = data.text || "";
+
+      msgElement.innerHTML = `<strong>${sender}:</strong> ${text}`;
+      messagesContainer.appendChild(msgElement);
+
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
     });
   }
 
@@ -294,7 +308,7 @@ export function initDungeonEditor() {
 
   window.addEventListener("DOMContentLoaded", async () => {
     await createLobbyOnServer();
-    await fetch("http://localhost:7071/api/join_lobby", {
+    const joinResponse = await fetch("http://localhost:7071/api/join_lobby", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -302,9 +316,38 @@ export function initDungeonEditor() {
         userId: currentUser().uid
       })
     });
+
+    const lobbyData = await joinResponse.json();
+
     await registerRealtimeListeners();
+
+    if (lobbyData.state && lobbyData.state.item && lobbyData.state.items.length > 0){
+      const canvas = document.getElementById("infinite-canvas");
+      if (canvas) canvas.innerHTML = "";
+      state.items = [];
+
+      lobbyData.state.items.forEach((item: any) => {
+        appendRoomToCanvas(item);
+      });
+    } else {
+      const savedItems = loadItemsFromStorage();
+      if (savedItems.length === 0) {
+        spawnDefaultRoom()
+      }
+    }
+
+    if (lobbyData.state && lobbyData.state.messages) {
+      const messagesContainer = document.getElementById("messages");
+      lobbyData.state.messages.forEach((msg: any) => {
+        const msgElement = document.createElement("p")
+        msgElement.innerHTML = `<strong>${msg.username}:</strong> ${msg.text}`
+        messagesContainer?.appendChild(msgElement)
+      });
+      if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
     observeCanvasChanges();
     setupInvitePanel();
+    setupChat();
     renderItems("rooms");
 
     menuButtons.forEach(button => {
@@ -335,4 +378,32 @@ export function initDungeonEditor() {
       buildDungeonSave(currentUser().uid, invitedFriends);
     });
   });
+
+  function setupChat() {
+    const messageInput = document.getElementById("message") as HTMLInputElement;
+    const sendBtn = document.getElementById("send-btn") as HTMLButtonElement;
+    const messagesContainer = document.getElementById("messages") as HTMLDivElement;
+
+    messagesContainer.innerHTML = "";
+
+    const sendMessage = () => {
+      const text = messageInput.value.trim();
+      if (!text) return;
+
+      const user = currentUser();
+
+      sendDungeonEvent("CHAT_MESSAGE", {
+        username: user.username,
+        text: text
+      });
+
+      messageInput.value = ""
+    };
+
+    sendBtn.addEventListener("click", sendMessage);
+    messageInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendMessage()
+    })
+  }
+  
 }

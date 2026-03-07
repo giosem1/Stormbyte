@@ -26,7 +26,7 @@ function saveItemsToStorage() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.items));
 }
 
-function loadItemsFromStorage(): PlacedItem[] {
+export function loadItemsFromStorage(): PlacedItem[] {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return [];
   try {
@@ -101,7 +101,7 @@ function trySnap(moving: PlacedItem): boolean {
   return false;
 }
 
-function spawnDefaultRoom() {
+export function spawnDefaultRoom() {
   const src = "public/assets/rooms/loginroom.png";
   const img = document.createElement("img");
   img.src = src;
@@ -373,30 +373,30 @@ const backArrow = document.getElementById("back-arrow");
 backArrow?.addEventListener("click", () => { clearDungeonEditorState(); });
 
 window.addEventListener("DOMContentLoaded", () => {
-  const savedItems = loadItemsFromStorage();
+  // const savedItems = loadItemsFromStorage();
 
-  if (savedItems.length === 0) {
-    spawnDefaultRoom();
-    return;
-  }
+  // if (savedItems.length === 0) {
+  //   spawnDefaultRoom();
+  //   return;
+  // }
 
-  savedItems.forEach(item => {
-    const img = document.createElement("img");
-    img.src = item.src;
-    img.classList.add("absolute", "select-none", `${item.type}-dynamic`);
-    img.draggable = false;
+  // savedItems.forEach(item => {
+  //   const img = document.createElement("img");
+  //   img.src = item.src;
+  //   img.classList.add("absolute", "select-none", `${item.type}-dynamic`);
+  //   img.draggable = false;
 
-    img.style.width = `${item.width}px`;
-    img.style.height = `${item.height}px`;
-    img.style.left = `${item.x}px`;
-    img.style.top = `${item.y}px`;
+  //   img.style.width = `${item.width}px`;
+  //   img.style.height = `${item.height}px`;
+  //   img.style.left = `${item.x}px`;
+  //   img.style.top = `${item.y}px`;
 
-    img.dataset.id = item.id;
+  //   img.dataset.id = item.id;
 
-    canvas.appendChild(img);
-    state.items.push(item);
-    enableDrag(img, item);
-  });
+  //   canvas.appendChild(img);
+  //   state.items.push(item);
+  //   enableDrag(img, item);
+  // });
 
   updateCanvas();
 });

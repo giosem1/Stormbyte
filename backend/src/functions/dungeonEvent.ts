@@ -1,5 +1,6 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { getLobby, applyActionToState } from "../shared/lobbyStore";
+import { group } from "node:console";
 
 interface DungeonEvent {
   dungeonCode: string;
@@ -31,12 +32,14 @@ app.http("dungeon_event", {
       if (!lobby) return { status: 404, jsonBody: { error: "Lobby non trovata" } };
 
       applyActionToState(lobby.state, { type, payload });
+      let signalRMessages = [];
 
-      const movedItem = lobby.state.items.find(i => i.id === payload.roomId);
-
-      context.extraOutputs.set("signalRMessages", [
-        {
+      if (type === "MOVE_ROOM") {
+        const movedItem = lobby.state.items.find(i => i.id === payload.roomId);
+        
+        signalRMessages.push({
           target: "RoomMoved",
+          groupName: dungeonCode,
           arguments: [{
             roomId: payload.roomId,
             x: payload.x,
@@ -46,8 +49,20 @@ app.http("dungeon_event", {
             type: payload.type,
             fullItem: movedItem 
           }]
-        }
-      ]);
+        });
+      } else if (type === "CHAT_MESSAGE"){
+        signalRMessages.push({
+          target: "ChatMessage",
+          groupName: dungeonCode,
+          arguments: [{
+            userId: userId,
+            username: payload.username,
+            text: payload.text
+          }]
+        });
+      }
+
+      context.extraOutputs.set("signalRMessages", signalRMessages);
 
       return { status: 200, jsonBody: { success: true } };
 
