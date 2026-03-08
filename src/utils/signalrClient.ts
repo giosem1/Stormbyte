@@ -57,6 +57,23 @@ export function onRoomDeleted(callback: (roomId: string) => void) {
     connection.on("RoomDeleted", callback);
 }
 
+export async function broadcastRealTimeMove(dungeonCode: string, payload: any) {
+    if (connection && connection.state === "Connected"){
+        try{
+            await fetch("http://localhost:7071/api/sync_move", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    dungeonCode: dungeonCode,
+                    data: payload
+                })
+            });
+        }catch (err){
+            console.error("Real-time movment error: ", err)
+        }
+    }
+}
+
 //Chat for create dungeon
 export function onChatMessage(callback: (data: any)=> void){
     connection.on("ChatMessage", callback);

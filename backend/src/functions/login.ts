@@ -50,7 +50,6 @@ app.http("login", {
       friends: player.friends || [],
       dungeons: player.dungeons || []
     };
-    console.log(safeUser)
     return {
       status: 200,
       headers: {

@@ -2,8 +2,8 @@ import type { User } from "../../types/types";
 import GenericPanel from "../../ui/pannel";
 import { buildDungeonSave } from "./savedungeon";
 import { getSession } from "../../utils/session";
-import { createConnection, startConnection, onRoomMoved, onChatMessage } from "../../utils/signalrClient";
-import { enableDrag, setSendDungeonEvent, loadItemsFromStorage, spawnDefaultRoom } from "./positioning";
+import { createConnection, startConnection, onRoomMoved, onChatMessage, broadcastRealTimeMove } from "../../utils/signalrClient";
+import { enableDrag, setSendDungeonEvent, setSendRealTimeEvent ,loadItemsFromStorage, spawnDefaultRoom } from "./positioning";
 import { state } from "./state";
 import "./movement";
 
@@ -33,16 +33,12 @@ export function initDungeonEditor() {
   const MAX_INVITES = 5;
 
   setSendDungeonEvent(sendDungeonEvent);
-  function throttle(fn: Function, delay: number) {
-    let last = 0;
-    return (...args: any[]) => {
-      const now = Date.now();
-      if (now - last > delay) {
-        last = now;
-        fn(...args);
-      }
-    };
-  }
+  setSendRealTimeEvent((payload) =>{
+    broadcastRealTimeMove(dungeonCode, {
+      ...payload,
+      movedBy: currentUser().uid
+    });
+  });
 
   function currentUser(): User {
     const session = getSession();
@@ -90,6 +86,7 @@ export function initDungeonEditor() {
     await startConnection();
     
     onRoomMoved((data) => {
+      console.log("Ricevuto movimento dal server: ", data);
       if (data.movedBy === currentUser().uid) return;
 
       let el = document.querySelector(
@@ -101,7 +98,9 @@ export function initDungeonEditor() {
           src: data.src ?? "public/assets/rooms/sacrificeroom.png",
           type: data.type,
           x: data.x,
-          y: data.y,
+          y: data.y,  
+          width: data.width,
+          height: data.height
         };
 
         appendRoomToCanvas(newItem);
@@ -122,9 +121,14 @@ export function initDungeonEditor() {
       if (item) {
         item.x = data.x;
         item.y = data.y;
+
+        el.style.left = `${data.x}px`;
+        el.style.top = `${data.y}px`;
       }
       appendRoomToCanvas(el)
-      isRemoteUpdate = false;
+      setTimeout(() => {
+        isRemoteUpdate = false;
+      }, 0);
     });
 
     onChatMessage((data) => {
@@ -142,40 +146,6 @@ export function initDungeonEditor() {
     });
   }
 
-  function observeCanvasChanges() {
-    const canvas = document.getElementById("infinite-canvas");
-    if (!canvas) return;
-
-    const sendMoveThrottled = throttle((id: string, x: number, y: number) => {
-      const item = state.items.find(i => i.id === id);
-      sendDungeonEvent("MOVE_ROOM", { roomId: id, x, y, src: item?.src, type: item?.type });
-    }, 50);
-
-    const observer = new MutationObserver((mutations) => {
-      if (isRemoteUpdate) return;
-
-      for (const mutation of mutations) {
-        if (
-          mutation.type === "attributes" &&
-          mutation.attributeName === "style"
-        ) {
-          const target = mutation.target as HTMLElement;
-          if (!target.dataset.id) continue;
-
-          const x = parseInt(target.style.left || "0");
-          const y = parseInt(target.style.top || "0");
-
-          sendMoveThrottled(target.dataset.id, x, y);
-        }
-      }
-    });
-
-    observer.observe(canvas, {
-      subtree: true,
-      attributes: true,
-      attributeFilter: ["style"]
-    });
-  }
 
 
   function appendRoomToCanvas(item: any) {
@@ -345,7 +315,7 @@ export function initDungeonEditor() {
       });
       if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
-    observeCanvasChanges();
+    /* observeCanvasChanges(); */
     setupInvitePanel();
     setupChat();
     renderItems("rooms");

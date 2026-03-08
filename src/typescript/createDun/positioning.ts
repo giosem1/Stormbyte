@@ -7,10 +7,18 @@ let draggingImage: HTMLImageElement | null = null;
 let offsetX = 0;
 let offsetY = 0;
 let sendEventGlobal: ((type: string, payload: any) => void) | null = null;
+let sendRealTimeGlobal: ((payload: any) => void) | null = null;
 
 export function setSendDungeonEvent(fn: (type: string, payload: any) => void) {
   sendEventGlobal = fn;
 }
+
+export function setSendRealTimeEvent(fn: (payload: any) => void) {
+  sendRealTimeGlobal = fn;
+}
+
+let lastMoveTime = 0;
+const SIGNALR_THROTTLE_MS = 40;
 
 const SNAP_DISTANCE = 100;
 type Side = "top" | "bottom" | "left" | "right";
@@ -255,7 +263,23 @@ window.addEventListener("mousemove", (e) => {
   if (item) {
     item.x = x;
     item.y = y;
-    if (sendEventGlobal) {
+
+    const now = Date.now();
+    if (sendRealTimeGlobal && (now - lastMoveTime > SIGNALR_THROTTLE_MS)){
+      lastMoveTime = now;
+      console.log("Inviando pacchetto Real-Time via SignalR...");
+      sendRealTimeGlobal({
+        roomId: item.id,
+        x: item.x,
+        y: item.y,
+        src: item.src,
+        type: item.type,
+        width: item.width,
+        height: item.height
+      });
+    }
+
+    /* if (sendEventGlobal) {
       sendEventGlobal("MOVE_ROOM", {
         roomId: item.id,
         x: item.x,
@@ -263,7 +287,7 @@ window.addEventListener("mousemove", (e) => {
         src: item.src,
         type: item.type
       });
-    }
+    } */
   }
 });
 
@@ -303,17 +327,19 @@ window.addEventListener("mouseup", () => {
     }
   }
 
-  draggingImage = null;
-  saveItemsToStorage();
   if (sendEventGlobal) {
     sendEventGlobal("MOVE_ROOM", {
       roomId: item.id,
       x: item.x,
       y: item.y,
       src: item.src,
-      type: item.type
+      type: item.type,
+      width: item.width,
+      height: item.height
     });
   }
+  draggingImage = null;
+  saveItemsToStorage();
 });
 
 function isOverlapping(a: PlacedItem, b: PlacedItem): boolean {
@@ -373,30 +399,5 @@ const backArrow = document.getElementById("back-arrow");
 backArrow?.addEventListener("click", () => { clearDungeonEditorState(); });
 
 window.addEventListener("DOMContentLoaded", () => {
-  // const savedItems = loadItemsFromStorage();
-
-  // if (savedItems.length === 0) {
-  //   spawnDefaultRoom();
-  //   return;
-  // }
-
-  // savedItems.forEach(item => {
-  //   const img = document.createElement("img");
-  //   img.src = item.src;
-  //   img.classList.add("absolute", "select-none", `${item.type}-dynamic`);
-  //   img.draggable = false;
-
-  //   img.style.width = `${item.width}px`;
-  //   img.style.height = `${item.height}px`;
-  //   img.style.left = `${item.x}px`;
-  //   img.style.top = `${item.y}px`;
-
-  //   img.dataset.id = item.id;
-
-  //   canvas.appendChild(img);
-  //   state.items.push(item);
-  //   enableDrag(img, item);
-  // });
-
   updateCanvas();
 });

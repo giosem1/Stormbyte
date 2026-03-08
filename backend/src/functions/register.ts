@@ -24,7 +24,6 @@ app.http("register", {
     }
     let body: RegisterRequest;
     body = await req.json() as RegisterRequest;
-    console.log(body)
 
     const { uid, username, password, profileImg, classe} = body;
 

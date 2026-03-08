@@ -19,7 +19,6 @@ app.http("invite_dungeon", {
   ],
   handler: async (req, context) => {
     const { toUserId, fromUserId, fromUsername, dungeonCode, dungeonName } = await req.json() as DungeonInviteBody;
-    console.log(dungeonCode)
     
     context.extraOutputs.set("signalRMessages", [{
       userId: toUserId,
