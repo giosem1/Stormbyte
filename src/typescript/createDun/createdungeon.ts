@@ -303,6 +303,14 @@ export function initDungeonEditor() {
       const savedItems = loadItemsFromStorage();
       if (savedItems.length === 0) {
         spawnDefaultRoom()
+      }else {
+        const canvas = document.getElementById("inifnite-canvas");
+        if (canvas) canvas.innerHTML = "";
+        state.items = [];
+
+        savedItems.forEach((item: any) => {
+          appendRoomToCanvas(item)
+        });
       }
     }
 

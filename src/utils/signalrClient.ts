@@ -11,7 +11,51 @@ export function createConnection(user: User) {
         })
         .withAutomaticReconnect()
         .build();
+
+    registerGlobalNotificationListeners();
     return connection;
+}
+
+function registerGlobalNotificationListeners(){
+    connection.on("FriendRequestReceived", (notif) => {
+        const savedNotifs = JSON.parse(localStorage.getItem("app_notifications") || "[]");
+        const alreadyExists = savedNotifs.some((n: any) => 
+            n.type === "friend_request" &&
+            n.fromUid === notif.fromUserId
+        );
+        if (!alreadyExists){
+            savedNotifs.push({
+                type: "friend_request",
+                fromUid: notif.fromUserId,
+                fromUsername: notif.fromUserName,
+                timestamp: notif.timestamp
+            });
+            localStorage.setItem("app_notifications", JSON.stringify(savedNotifs));
+            window.dispatchEvent(new Event("notifications_updated"));
+        }
+    });
+
+    connection.on("DungeonInviteReceived", (payload) => {
+        const savedNotifs = JSON.parse(localStorage.getItem("app_notifications") || "[]");
+        const alreadyExists = savedNotifs.some((n: any) => 
+            n.type === "dungeon_invite" &&
+            n.dungeonCode === payload.dungeonCode &&
+            n.ownerUid === payload.ownerUid
+        );
+        if (!alreadyExists){
+            savedNotifs.push({
+                type: "dungeon_invite",
+                dungeonCode: payload.dungeonCode,
+                dungeonName: payload.dungeonName,
+                ownerUid: payload.ownerUid,
+                ownerUsername: payload.ownerUsername,
+                timestamp: payload.timestamp
+            });
+    
+            localStorage.setItem("app_notifications", JSON.stringify(savedNotifs));
+            window.dispatchEvent(new Event("notifications_updated"));
+        }
+    });
 }
 
 export async function startConnection() {
@@ -22,10 +66,6 @@ export async function startConnection() {
         console.error("Errore connessione SignalR:", err);
         setTimeout(startConnection, 5000);
     }
-}
-
-export function onFriendRequest(callback: (data: any) => void) {
-    connection.on("FriendRequestReceived", callback);
 }
 
 export function sendFriendRequestSignal(data: any) {

@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { Torch } from "./scenes/torch";
 import GenericPanel from "../ui/pannel";
 import { clearSession, getSession, setSession } from "../utils/session";
-import { createConnection, startConnection, onFriendRequest } from "../utils/signalrClient";
+import { createConnection, startConnection } from "../utils/signalrClient";
 import { PREVIEW_TO_CLASS, type Friend, type PlayerClass, type User } from "../types/types";
 
 import { PREVIEW_CONFIG, mountPreview, unmountPreview } from "./previewanimation"; 
@@ -45,19 +45,28 @@ function currentUser(): User {
   return session.user;
 }
 
-let notifications: any[] = [];
+let notifications: any[] = JSON.parse(localStorage.getItem("app_notifications") || "[]");
+updateNotificationBadge();
+
+window.addEventListener("pageshow", () => {
+  notifications = JSON.parse(localStorage.getItem("app_notifications") || "[]");
+  updateNotificationBadge();
+});
+
+window.addEventListener("notifications_updated", () => {
+  notifications = JSON.parse(localStorage.getItem("app_notifications") || "[]");
+  updateNotificationBadge();
+});
+
+window.addEventListener("storage", (e) => {
+    if (e.key === "app_notifications") {
+        notifications = JSON.parse(e.newValue || "[]");
+        updateNotificationBadge();
+    }
+});
 
 const connection = createConnection(user);
 startConnection();
-onFriendRequest((notif) => {
-    notifications.push({
-        type: "friend_request",
-        fromUid: notif.fromUserId,
-        fromUsername: notif.fromUserName,
-        timestamp: notif.timestamp
-    });
-    updateNotificationBadge();
-});
 connection.on("UserUpdated", (updatedUser) => {
   const currentSession = getSession();
   if (!currentSession) return;
@@ -121,21 +130,25 @@ notificationBell.addEventListener("click", () => {
 
     if (n.type === "friend_request") {
       return `
-        <div class="flex flex-col border rounded-lg p-3 mb-2">
-          <span class="text-white font-semibold">
-            <span class="text-yellow-400 font-bold">
-              ${n.fromUsername}
+        <div class="flex flex-col border border-green-500/50 bg-green-900/20 rounded-lg p-4 mb-3 shadow-lg shadow-green-900/20 relative overflow-hidden">
+          <div class="absolute left-0 top-0 bottom-0 w-1 bg-green-500"></div>
+          
+          <div class="flex items-center gap-3 mb-3">
+            <div class="text-3xl">🤝</div>
+            <span class="text-white text-sm leading-tight">
+              <span class="text-green-400 font-bold text-base tracking-wide">
+                ${n.fromUsername}
+              </span><br/>
+              ti ha inviato una richiesta di amicizia
             </span>
-            ti ha inviato una richiesta di amicizia
-          </span>
+          </div>
 
-          <div class="flex gap-2 mt-2">
-            <button class="panel-btn accept" data-index="${index}">
-              Accetta
+          <div class="flex gap-3 mt-1">
+            <button class="panel-btn accept w-full text-center font-bold !bg-green-600 hover:!bg-green-500 !border-transparent transition-colors" data-index="${index}">
+              ACCETTA
             </button>
-
-            <button class="panel-btn reject" data-index="${index}">
-              Rifiuta
+            <button class="panel-btn reject w-full text-center font-bold !bg-red-600 hover:!bg-red-500 !border-transparent transition-colors" data-index="${index}">
+              RIFIUTA
             </button>
           </div>
         </div>
@@ -143,26 +156,30 @@ notificationBell.addEventListener("click", () => {
     }
 
     if (n.type === "dungeon_invite") {
-      const dungeonNameText = n.dungeonName || "per un'avventura epica!";
+      const dungeonNameText = n.dungeonName || "Avventura Epica";
       return `
-        <div class="flex flex-col border rounded-lg p-3 mb-2">
-          <span class="text-white font-semibold break-words">
-            <span class="text-yellow-400 font-bold">
-              ${n.ownerUsername}
-            </span>
-            ti ha invitato nel dungeon 
-            <span class="text-cyan-400 font-semibold">
-              ${dungeonNameText}
-            </span>
-          </span>
+        <div class="flex flex-col border border-purple-500/50 bg-purple-900/20 rounded-lg p-4 mb-3 shadow-lg shadow-purple-900/20 relative overflow-hidden">
+          <div class="absolute left-0 top-0 bottom-0 w-1 bg-purple-500"></div>
 
-          <div class="flex gap-2 mt-2">
-            <button class="panel-btn join" data-index="${index}">
-              Partecipa
+          <div class="flex items-center gap-3 mb-3">
+            <div class="text-3xl">⚔️</div>
+            <span class="text-white text-sm leading-tight">
+              <span class="text-purple-400 font-bold text-base tracking-wide">
+                ${n.ownerUsername}
+              </span><br/>
+              ti ha invitato nel dungeon<br/>
+              <span class="text-cyan-400 font-bold text-base">
+                ${dungeonNameText}
+              </span>
+            </span>
+          </div>
+
+          <div class="flex gap-3 mt-1">
+            <button class="panel-btn join w-full text-center font-bold !bg-purple-600 hover:!bg-purple-500 !border-transparent transition-colors shadow-[0_0_10px_rgba(168,85,247,0.5)]" data-index="${index}">
+              PARTECIPA
             </button>
-
-            <button class="panel-btn reject" data-index="${index}">
-              Rifiuta
+            <button class="panel-btn reject w-full text-center font-bold !bg-gray-600 hover:!bg-gray-500 !border-transparent transition-colors" data-index="${index}">
+              IGNORA
             </button>
           </div>
         </div>
@@ -189,6 +206,7 @@ notificationBell.addEventListener("click", () => {
       await acceptFriendRequest(notif.fromUid, user);
 
       notifications.splice(index, 1);
+      saveAndRefreshNotifications();
       panel.hide();
     });
   });
@@ -222,8 +240,8 @@ notificationBell.addEventListener("click", () => {
       }
 
       notifications.splice(index, 1);
+      saveAndRefreshNotifications();
       panel.hide();
-      updateNotificationBadge();
 
       localStorage.setItem("dungeonCode", notif.dungeonCode);
 
@@ -239,6 +257,7 @@ notificationBell.addEventListener("click", () => {
     btn.addEventListener("click", (e: any) => {
       const index = e.target.dataset.index;
       notifications.splice(index, 1);
+      saveAndRefreshNotifications();
       panel.hide();
     });
   });
@@ -249,41 +268,31 @@ notificationBadge.style.display = "flex";
 notificationBadge.style.display = "none";
 
 document.body.appendChild(notificationBadge);
+
+function saveAndRefreshNotifications(){
+  localStorage.setItem("app_notifications", JSON.stringify(notifications));
+  updateNotificationBadge();
+}
+
 function updateNotificationBadge() {
   const badge = document.getElementById("notificationBadge");
   if (!badge) return;
 
-  const count = notifications.filter(n => n.type === "friend_request").length;
+  const count = notifications.length;
 
   if (count > 0) {
     badge.textContent = count > 99 ? "99+" : count.toString();
+    badge.classList.remove("hidden");
+    badge.classList.add("flex");
+
+
     badge.style.display = "flex";
   } else {
+    badge.classList.add("hidden");
+    badge.classList.remove("flex");
     badge.style.display = "none";
   }
 }
-// connection.on("FriendRequestReceived", (notification) => {
-//     notifications.push({
-//         type: "friend_request",
-//         fromUid: notification.fromUserId,
-//         fromUsername: notification.fromUserName,
-//         timestamp: notification.timestamp
-//     });
-//     updateNotificationBadge();
-// });
-connection.on("DungeonInviteReceived", (payload) => {
-
-  notifications.push({
-    type: "dungeon_invite",
-    dungeonCode: payload.dungeonCode,
-    dungeonName: payload.dungeonName,
-    ownerUid: payload.ownerUid,
-    ownerUsername: payload.ownerUsername,
-    timestamp: payload.timestamp
-  });
-
-  updateNotificationBadge();
-});
 
 // Menu
 const createD = document.getElementById("create") as HTMLParagraphElement;
