@@ -97,6 +97,10 @@ export function onRoomDeleted(callback: (roomId: string) => void) {
     connection.on("RoomDeleted", callback);
 }
 
+export function onNameChanged(callback: (payload: any) => void) {
+    connection.on("NAME_CHANGED", callback);
+}
+
 export async function broadcastRealTimeMove(dungeonCode: string, payload: any) {
     if (connection && connection.state === "Connected"){
         try{

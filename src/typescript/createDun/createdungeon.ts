@@ -2,7 +2,7 @@ import type { User } from "../../types/types";
 import GenericPanel from "../../ui/pannel";
 import { buildDungeonSave } from "./savedungeon";
 import { getSession } from "../../utils/session";
-import { createConnection, startConnection, onRoomMoved, onChatMessage, broadcastRealTimeMove } from "../../utils/signalrClient";
+import { createConnection, startConnection, onRoomMoved, onChatMessage, broadcastRealTimeMove, onNameChanged} from "../../utils/signalrClient";
 import { enableDrag, setSendDungeonEvent, setSendRealTimeEvent ,loadItemsFromStorage, spawnDefaultRoom } from "./positioning";
 import { state } from "./state";
 import "./movement";
@@ -18,7 +18,7 @@ export function initDungeonEditor() {
   const nameInput = document.getElementById("dungeon-name-input") as HTMLInputElement;
   const back = document.getElementById("back-arrow") as HTMLParagraphElement;
   const inviteLabel = document.getElementById("sent-label") as HTMLParagraphElement;
-  
+
   let dungeonCode = localStorage.getItem("dungeonCode");
   if (!dungeonCode) {
     const gameName = "Stormbyte";
@@ -85,8 +85,13 @@ export function initDungeonEditor() {
     createConnection(user);
     await startConnection();
     
+    onNameChanged((payload) => {
+      const nameInput = document.getElementById("dungeon-name-input") as HTMLInputElement;
+      if (nameInput && nameInput.value !== payload.name){
+        nameInput.value = payload.name;
+      }
+    });
     onRoomMoved((data) => {
-      console.log("Ricevuto movimento dal server: ", data);
       if (data.movedBy === currentUser().uid) return;
 
       let el = document.querySelector(
@@ -288,7 +293,27 @@ export function initDungeonEditor() {
     });
 
     const lobbyData = await joinResponse.json();
+    console.log(lobbyData)
+    const isOwner = lobbyData.ownerId === currentUser().uid;
 
+    const saveBtn = document.getElementById("save");
+    const inviteBtn = document.getElementById("sent-label");
+    const nameInput = document.getElementById("dungeon-name-input") as HTMLInputElement;
+
+    if (!isOwner){
+      if (saveBtn) saveBtn.style.display = "none";
+      if (inviteBtn) inviteBtn.style.display = "none";
+
+      if (nameInput){
+        nameInput.disabled = true;
+        nameInput.classList.add("opacity-50", "cursor-not-allowed");
+      }
+    } else {
+      nameInput.addEventListener("input", (e) => {
+        const newName = (e.target as HTMLInputElement).value;
+        sendDungeonEvent("NAME_CHANGED", { name: newName})
+      });
+    }
     await registerRealtimeListeners();
 
     if (lobbyData.state && lobbyData.state.item && lobbyData.state.items.length > 0){

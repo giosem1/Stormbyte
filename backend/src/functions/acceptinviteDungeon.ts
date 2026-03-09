@@ -72,6 +72,7 @@ app.http("join_lobby", {
         status: 200,
         jsonBody:{
           success: true,
+          ownerId: lobby.ownerId,
           state: lobby.state 
         }
       };
