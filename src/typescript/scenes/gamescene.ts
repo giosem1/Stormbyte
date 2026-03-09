@@ -1,7 +1,9 @@
 import Phaser from "phaser";
+import GenericPanel from "../../ui/pannel";
+import { getSession } from "../../utils/session";
+import { createConnection, startConnection } from "../../utils/signalrClient";
 import { ENEMY_CONFIG, TRAP_CONFIG, type Dungeon, type ItemType, type RoomSave, type User } from "../../types/types";
 import { createArcherAnimations, createEnemyAnimations, createHeartAnimations, createKnightAnimations, createMageAnimations, trapAnimation } from "./animation";
-import GenericPanel from "../../ui/pannel";
 
 const SCALE_RULES: Record<ItemType, number> = {
   room: 1.2,
@@ -25,28 +27,41 @@ export default class GameScene extends Phaser.Scene {
   private itemsInScene: Phaser.GameObjects.Image[] = [];
   private isAttacking = false;
   private isDead = false;
+  private otherPlayers: Map<string, Phaser.GameObjects.Sprite> = new Map();
+  private dungeonCode!: string;
+
   constructor() {
     super("GameScene");
   }
   
+  init(){
+    const session = getSession();
+    if (!session || !session.user){
+      window.location.href = "login.html";
+      return;
+    }
+
+    this.user = session.user
+    this.userClass = this.user.classe || "Knight";
+    this.dungeonCode = localStorage.getItem("current_game_dungeon") || "";
+
+   /*  if (!this.dungeonCode){
+      console.error("No dungeon selected!");
+      window.location.href = "homepage.html";
+    } */
+  }
 
   async preload() {
     // Object image & spritesheet
     this.load.image("bg-stone", "assets/dark_wall.png");
     this.load.image("bag", "assets/user/bags.png");
     const rawDungeon = localStorage.getItem("dungeon")
-    const rawUser = localStorage.getItem("user")
-    if (!rawUser){
-      window.location.href = "login.html"
-      throw new Error("User not authenticated")
-    }
+
     if(!rawDungeon){
       window.location.href = "homepage.html";
       throw new Error("Dungeon not foung");
     }
 
-    this.user = JSON.parse(rawUser)
-    this.userClass = this.user.classe
     this.load.json("dungeon", rawDungeon);
     this.load.image("heart", "assets/heart.png"); 
     this.load.spritesheet("heart_loss", "assets/heart_loss.png", {
@@ -55,46 +70,48 @@ export default class GameScene extends Phaser.Scene {
     });
 
     // Hero spritesheet
-    if(this.userClass === "Knight"){
-      this.load.spritesheet("kng", "assets/KnightAnimation/KnightWalk.png", {
-          frameWidth: 290,
-          frameHeight: 309
-      });
-      this.load.spritesheet("kngAttack", "assets/KnightAnimation/KnightAttack.png", {
-          frameWidth: 439,
-          frameHeight: 408
-      });
-      this.load.spritesheet(this.userClass+"Death", "assets/KnightAnimation/KnightDeath.png", {
-          frameWidth: 361,
-          frameHeight: 288
-      });
-    }else if(this.userClass === "Mage"){
-      this.load.spritesheet("mg", "assets/MageAnimation/MageWalk.png", {
-          frameWidth: 126,
-          frameHeight: 260
-      });
-      this.load.spritesheet("mgAttack", "assets/MageAnimation/MageAttack.png", {
-          frameWidth: 383,
-          frameHeight: 321
-      });
-      this.load.spritesheet(this.userClass+"Death", "assets/MageAnimation/MageDeath.png", {
-          frameWidth: 404,
-          frameHeight: 285
-      });
-    }else if(this.userClass === "Archer"){
-      this.load.spritesheet("arc", "assets/ArcherAnimation/ArcherWalk.png", {
-          frameWidth: 254,
-          frameHeight: 264
-      });
-      this.load.spritesheet("arcAttack", "assets/ArcherAnimation/ArcherAttack.png", {
-          frameWidth: 389,
-          frameHeight: 378
-      });
-      this.load.spritesheet(this.userClass+"Death", "assets/ArcherAnimation/ArcherDeath.png", {
-          frameWidth: 293,
-          frameHeight: 284
-      });
-    }
+    //Knight Spritesheet 
+    this.load.spritesheet("kng", "assets/KnightAnimation/KnightWalk.png", {
+        frameWidth: 290,
+        frameHeight: 309
+    });
+    this.load.spritesheet("kngAttack", "assets/KnightAnimation/KnightAttack.png", {
+        frameWidth: 439,
+        frameHeight: 408
+    });
+    this.load.spritesheet(this.userClass+"Death", "assets/KnightAnimation/KnightDeath.png", {
+        frameWidth: 361,
+        frameHeight: 288
+    });
+  
+    //Mage Spritesheet
+    this.load.spritesheet("mg", "assets/MageAnimation/MageWalk.png", {
+        frameWidth: 126,
+        frameHeight: 260
+    });
+    this.load.spritesheet("mgAttack", "assets/MageAnimation/MageAttack.png", {
+        frameWidth: 383,
+        frameHeight: 321
+    });
+    this.load.spritesheet(this.userClass+"Death", "assets/MageAnimation/MageDeath.png", {
+        frameWidth: 404,
+        frameHeight: 285
+    });
+    
+    //Archer Spritesheet
+    this.load.spritesheet("arc", "assets/ArcherAnimation/ArcherWalk.png", {
+        frameWidth: 254,
+        frameHeight: 264
+    });
+    this.load.spritesheet("arcAttack", "assets/ArcherAnimation/ArcherAttack.png", {
+        frameWidth: 389,
+        frameHeight: 378
+    });
+    this.load.spritesheet(this.userClass+"Death", "assets/ArcherAnimation/ArcherDeath.png", {
+        frameWidth: 293,
+        frameHeight: 284
+    });
+    
 
     // Traps spritesheet
     this.load.image("spk_idle", "assets/traps/spike.png");
@@ -130,10 +147,30 @@ export default class GameScene extends Phaser.Scene {
     });
   }
 
-  create() {
-     if (!this.anims.exists("walk")) {
-        this.createAllAnimations();
-    } 
+  async create() {
+    const connection = createConnection(this.user);
+
+    try {
+      await startConnection();
+      await fetch("http://localhost:7071/api/join_game", {
+        method: "POST",
+        headers: { "Content-Type": "application/json"},
+        body: JSON.stringify({
+          dungeonCode: this.dungeonCode,
+          userId: this.user.uid,
+          username: this.user.username
+        })
+      });
+      
+    }catch(err){
+      console.error("Error during the connection: ", err)
+    }
+    connection.on
+
+    if (!this.anims.exists("walk")) {
+      this.createAllAnimations();
+    }
+    
     const rawDungeon = localStorage.getItem("dungeon")
     if(!rawDungeon){
       window.location.href = "homepage.html";

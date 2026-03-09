@@ -311,6 +311,7 @@ export function initDungeonEditor() {
     } else {
       nameInput.addEventListener("input", (e) => {
         const newName = (e.target as HTMLInputElement).value;
+        console.log("🔵 [Owner] Inviando nuovo nome:", newName);
         sendDungeonEvent("NAME_CHANGED", { name: newName})
       });
     }

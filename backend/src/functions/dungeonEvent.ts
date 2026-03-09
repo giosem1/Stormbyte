@@ -60,6 +60,15 @@ app.http("dungeon_event", {
             text: payload.text
           }]
         });
+      } else if (type === "NAME_CHANGED"){
+        signalRMessages.push({
+          target: "NAME_CHANGED",
+          groupName: dungeonCode,
+          arguments: [{
+            name: payload.name,
+            changedBy: userId
+          }]
+        });
       }
 
       context.extraOutputs.set("signalRMessages", signalRMessages);
