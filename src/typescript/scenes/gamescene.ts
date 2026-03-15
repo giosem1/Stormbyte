@@ -12,6 +12,8 @@ const SCALE_RULES: Record<ItemType, number> = {
 };
 const HERO_TARGET_HEIGHT = 120;
 
+const WALL_THICKNESS = 40;
+const DOOR_WIDTH = 80;
 export default class GameScene extends Phaser.Scene {
   private user!: User;
   private userClass!: string;
@@ -33,6 +35,7 @@ export default class GameScene extends Phaser.Scene {
   private lastSyncData = { x: 0, y: 0, anim: "", flipX: false };
   private lastSyncTime = 0;
   private facingRight: boolean = true;
+  private isGameWon = false;
 
   constructor() {
     super("GameScene");
@@ -228,6 +231,8 @@ export default class GameScene extends Phaser.Scene {
       if (data.userId === this.user.uid) return;
 
       let otherHero = this.otherPlayers.get(data.userId);
+      
+      if (otherHero && otherHero.getData("isDead")) return;
 
       if (!otherHero) {
         this.spawnOtherPlayer({ 
@@ -266,6 +271,75 @@ export default class GameScene extends Phaser.Scene {
       if (otherPlayer) {
         otherPlayer.destroy();
         this.otherPlayers.delete(uid);
+      }
+    });
+
+    connection.on("EnemyDamaged", (enemyId: string, senderId: string) => {
+      if (senderId === this.user.uid) return;
+
+      const enemy = this.enemies.find(e => e.getData("enemyId") === enemyId);
+      if (enemy) {
+        this.applyEnemyDamageVisual(enemy);
+      }
+    });
+
+    connection.on("ItemCollected", (itemId: string, senderId: string) => {
+      if (senderId === this.user.uid) return;
+
+      const itemToDestroy = this.itemsInScene.find(i => i.getData("itemId") === itemId);
+      if (itemToDestroy) {
+        itemToDestroy.destroy();
+        this.itemsInScene = this.itemsInScene.filter(i => i !== itemToDestroy);
+        this.checkWinCondition();
+      }
+    });
+
+    connection.on("PlayerDied", (classType: string, senderId: string) => {
+      if (senderId === this.user.uid) return;
+
+      const deadPlayerContainer = this.otherPlayers.get(senderId);
+      if (deadPlayerContainer) {
+        deadPlayerContainer.setData("isDead", true);
+        if (deadPlayerContainer.body) {
+          (deadPlayerContainer.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
+        }
+        const realSprite = deadPlayerContainer.getData("sprite");
+        if (realSprite) {
+          realSprite.stop();
+          realSprite.play("death" + classType, true);
+        }
+
+      }
+    });
+
+    connection.on("TrapActivated", (trapId: string, senderId: string) => {
+      if (senderId === this.user.uid) return;
+
+      const trap = this.traps.find(t => t.getData("trapId") === trapId);
+      if (trap && !trap.getData("activated")) {
+        const name = trap.getData("trapName") as keyof typeof TRAP_CONFIG;
+        const config = TRAP_CONFIG[name];
+
+        trap.setData("activated", true);
+        trap.play(config.anim);
+
+        trap.once("animationcomplete", () => {
+          trap.setTexture(config.idle);
+          trap.setData("activated", false);
+        });
+      }
+
+    });
+
+    connection.on("EnemyStateChanged", (payload: string, senderId: string) => {
+      if (senderId === this.user.uid) return;
+
+      const [enemyId, newState] = payload.split("::");
+      const enemy = this.enemies.find(e => e.getData("enemyId") === enemyId);
+
+      if (enemy) {
+        enemy.setData("state", newState);
+        enemy.play(`enemy_${newState}`, true);
       }
     });
 
@@ -599,9 +673,11 @@ export default class GameScene extends Phaser.Scene {
       roomImg.setDepth(1);
 
 
-      room.enemies.forEach(enemy => {
+      room.enemies.forEach((enemy, index) => {
         const e = this.add.sprite(room.x + enemy.x, room.y + enemy.y, "enemy_idle");
 
+        const uniqueEnemyId = `${room.id}_enemy_${index}`;
+        e.setData("enemyId", uniqueEnemyId);
         e.setOrigin(0, 0);
         e.setScale(scale);
         e.setDepth(3);
@@ -623,17 +699,19 @@ export default class GameScene extends Phaser.Scene {
         e.setData("hearts", hearts);
       });
 
-      room.traps.forEach(trap => {
+      room.traps.forEach((trap, index) => {
         const scale = SCALE_RULES.trap;
         const config = TRAP_CONFIG[trap.name];
 
         if (!config) return;
 
         const t = this.add.sprite(room.x + trap.x, room.y + trap.y, config.idle);
-        
         t.setOrigin(0, 0);
         t.setScale(scale);
         t.setDepth(2);
+        
+        const uniqueTrapId = `${room.id}_trap_${index}`;
+        t.setData("trapId", uniqueTrapId);
 
         t.setData("trapName", trap.name);
         t.setData("activated", false);
@@ -660,8 +738,9 @@ export default class GameScene extends Phaser.Scene {
     });
 
     this.load.once("complete", () => {
+      Phaser.Math.RND.sow([this.dungeonCode]);
         this.dungeon.rooms.forEach(room => {
-            const numItems = Phaser.Math.Between(1, 3);
+            const numItems = Phaser.Math.RND.between(1, 3);
 
             for (let i = 0; i < numItems; i++) {
                 const item = Phaser.Math.RND.pick(itemAssets);
@@ -671,13 +750,16 @@ export default class GameScene extends Phaser.Scene {
                 const rangeX = room.width / 4;
                 const rangeY = room.height / 4;
 
-                const x = Phaser.Math.Between(centerX - rangeX, centerX + rangeX);
-                const y = Phaser.Math.Between(centerY - rangeY, centerY + rangeY);
+                const x = Phaser.Math.RND.between(centerX - rangeX, centerX + rangeX);
+                const y = Phaser.Math.RND.between(centerY - rangeY, centerY + rangeY);
 
                 const obj = this.add.image(x, y, item.key);
                 obj.setOrigin(0.5, 0.5);
                 obj.setDepth(5);
                 obj.setScale(2);
+
+                const uniqueItemId = `${room.id}_item_${i}`;
+                obj.setData("itemId", uniqueItemId);
 
                 obj.setData("itemKey", item.key);
                 obj.setData("roomId", room.id);
@@ -715,7 +797,18 @@ export default class GameScene extends Phaser.Scene {
     if (slotIndex === -1) {
         return;
     }
+    const itemId = item.getData("itemId");
 
+    fetch("http://localhost:7071/api/update_game_lobby", {
+      method:"POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        dungeonCode: this.dungeonCode,
+        userId: this.user.uid,
+        actionType: "ITEM_COLLECTED",
+        targetId: itemId
+      })
+    }).catch(err => console.error(err));
     const slot = this.inventorySlots[slotIndex];
     slot.setTexture(item.getData("itemKey"));
     slot.setData("filled", true);
@@ -726,6 +819,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     item.destroy();
+    this.checkWinCondition()
     this.itemsInScene = this.itemsInScene.filter(i => i !== item);
   }
 
@@ -748,7 +842,7 @@ export default class GameScene extends Phaser.Scene {
     const r = this.currentRoom;
     const hitbox = this.getHeroHitbox();
 
-    const roomRect = new Phaser.Geom.Rectangle(r.x, r.y, r.width, r.height);
+    const roomRect = new Phaser.Geom.Rectangle(r.x, r.y, r.width * SCALE_RULES.room, r.height * SCALE_RULES.room);
 
     if (Phaser.Geom.Rectangle.ContainsRect(roomRect, hitbox)) {
         return;
@@ -771,13 +865,13 @@ export default class GameScene extends Phaser.Scene {
 
         this.hero.x = Phaser.Math.Clamp(
             this.hero.x,
-            nextRoom.x + 20,
-            nextRoom.x + nextRoom.width - 20
+            nextRoom.x + WALL_THICKNESS,
+            nextRoom.x + (nextRoom.width * SCALE_RULES.room) - WALL_THICKNESS
         );
         this.hero.y = Phaser.Math.Clamp(
             this.hero.y,
-            nextRoom.y + 20,
-            nextRoom.y + nextRoom.height - 20
+            nextRoom.y + WALL_THICKNESS,
+            nextRoom.y + (nextRoom.height * SCALE_RULES.room) - WALL_THICKNESS
         );
 
         this.time.delayedCall(0, () => {
@@ -824,6 +918,17 @@ export default class GameScene extends Phaser.Scene {
         trap.setData("activated", true);
         
         trap.play(config.anim);
+        fetch("http://localhost:7071/api/update_game_lobby", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            dungeonCode: this.dungeonCode,
+            userId: this.user.uid,
+            actionType: "TRAP_ACTIVATED",
+            targetType: trap.getData("trapId")
+          })
+        }).catch(err => console.error(err));
+
         trap.once("animationcomplete", () => {
           trap.setTexture(config.idle);
           trap.setData("activated", false);
@@ -851,7 +956,52 @@ export default class GameScene extends Phaser.Scene {
           );
         });
       }
-      const heroC = this.hero.getCenter();
+      
+      const enemyC = enemy.getCenter();
+      const cfg = ENEMY_CONFIG.default;
+
+      let minDist = Phaser.Math.Distance.Between(this.hero.x, this.hero.y, enemyC.x, enemyC.y);
+
+      this.otherPlayers.forEach((otherHero) => {
+        if (!otherHero.getData("isDead")) {
+          const dist = Phaser.Math.Distance.Between(otherHero.x, otherHero.y, enemyC.x, enemyC.y);
+          if (dist < minDist) {
+            minDist = dist;
+          }
+        }
+      });
+
+      const state = enemy.getData("state");
+      if (minDist <= cfg.alertRange && state === "idle") {
+        enemy.setData("state", "alert");
+        enemy.play("enemy_alert", true);
+        
+        this.broadcastEnemyState(enemy.getData("enemyId"), "alert");
+
+        this.time.delayedCall(cfg.alertDuration, () => {
+          if (enemy.getData("state") === "alert") {
+            enemy.setData("state", "attack");
+            enemy.play("enemy_attack", true);
+            
+            this.broadcastEnemyState(enemy.getData("enemyId"), "attack");
+
+            this.time.delayedCall(500, () => {
+              if (!this.isDead && Phaser.Math.Distance.Between(this.hero.x, this.hero.y, enemyC.x, enemyC.y) <= cfg.alertRange) {
+                this.takeDamage(2);
+              }
+            });
+          }
+        });
+      }
+
+      if (minDist > cfg.alertRange && state !== "idle") {
+        enemy.setData("state", "idle");
+        enemy.play("enemy_idle", true);
+        
+        this.broadcastEnemyState(enemy.getData("enemyId"), "idle");
+      }
+
+      /* const heroC = this.hero.getCenter();
       const enemyC = enemy.getCenter();
   
       const dist = Phaser.Math.Distance.Between(
@@ -867,12 +1017,16 @@ export default class GameScene extends Phaser.Scene {
       if (dist <= cfg.alertRange && state === "idle") {
         enemy.setData("state", "alert");
         enemy.play("enemy_alert", true);
+
+        this.broadcastEnemyState(enemy.getData("enemyId"), "alert");
   
         this.time.delayedCall(cfg.alertDuration, () => {
           if (enemy.getData("state") === "alert") {
             enemy.setData("state", "attack");
             enemy.play("enemy_attack", true);
-  
+            
+            this.broadcastEnemyState(enemy.getData("enemyId"), "attack");
+
             this.time.delayedCall(500, () => {
               if (!this.isDead) {
                 this.takeDamage(2);
@@ -885,8 +1039,21 @@ export default class GameScene extends Phaser.Scene {
       if (dist > cfg.alertRange && state !== "idle") {
         enemy.setData("state", "idle");
         enemy.play("enemy_idle", true);
-      }
+      } */
     });
+  }
+
+  private broadcastEnemyState(enemyId: string, newState: string){
+    fetch("http://localhost:7071/api/updated_game_lobby", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        dungeonCode: this.dungeonCode,
+        userId: this.user.uid,
+        actionType: "ENEMY_STATE_CHANGED",
+        targetId: `${enemyId}::${newState}`
+      })
+    }).catch(err => console.error(err));
   }
   
   //Hero
@@ -928,7 +1095,7 @@ export default class GameScene extends Phaser.Scene {
     this.initAttack();
   }
 
-  // Hero movement
+  //Hero movement
   private initMovement() {
     const cursors = this.input.keyboard!.createCursorKeys();
     const speed = 200;
@@ -943,7 +1110,10 @@ export default class GameScene extends Phaser.Scene {
     this.events.on("update", (_: any, delta: number) => {
       const prevX = this.hero.x;
       const prevY = this.hero.y;
-      if (this.isAttacking) return;
+      if (this.isAttacking || this.isDead || this.isGameWon){
+        if (this.isGameWon && this.hero.active) this.hero.stop();
+        return;
+      } 
       const dt = delta / 1000;
       let moving = false;
 
@@ -973,20 +1143,60 @@ export default class GameScene extends Phaser.Scene {
       }
 
       this.updateHeroFacing();
+
+      if (this.hero && this.currentRoom && !this.isTransitioningRoom){
+        const roomCenterX = this.currentRoom.x + (this.currentRoom.width * SCALE_RULES.room) / 2;
+        const roomCenterY = this.currentRoom.y + (this.currentRoom.height * SCALE_RULES.room) / 2;
+
+        const minX = this.currentRoom.x + WALL_THICKNESS;
+        const maxX = this.currentRoom.x + (this.currentRoom.width * SCALE_RULES.room) - WALL_THICKNESS;
+        const minY = this.currentRoom.y + WALL_THICKNESS;
+        const maxY = this.currentRoom.y + (this.currentRoom.height * SCALE_RULES.room) - WALL_THICKNESS;
+
+        const isAtHorizontalDoor = Math.abs(this.hero.y - roomCenterY) < (DOOR_WIDTH / 2);
+        const isAtVerticalDoor = Math.abs(this.hero.x - roomCenterX) < (DOOR_WIDTH / 2);
+
+        if (!isAtHorizontalDoor){
+          if (this.hero.x < minX) this.hero.x = minX;
+          if (this.hero.x > maxX) this.hero.x = maxX;
+        }
+
+        if (!isAtVerticalDoor) {
+          if (this.hero.y < minY) this.hero.y = minY;
+          if (this.hero.y > maxY) this.hero.y = maxY; 
+        }
+      }
       this.activeTraps();
       this.updateEnemies();
       this.clampAndHandleRoomTransition(prevX, prevY);
     });
   }
 
-  // Hero attack
+  //Hero attack
   private damageEnemy(enemy: Phaser.GameObjects.Sprite) {
+    const enemyId = enemy.getData("enemyId");
+
+    fetch("http://localhost:7071/api/update_game_lobby", {
+      method:"POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        dungeonCode: this.dungeonCode,
+        userId: this.user.uid,
+        actionType: "ENEMY_DAMAGED",
+        targetId: enemyId
+      })
+    }).catch(err => console.error(err));
+
+    this.applyEnemyDamageVisual(enemy);
+  }
+
+  private applyEnemyDamageVisual(enemy: Phaser.GameObjects.Sprite) {
     let hp = enemy.getData("hp");
     if (hp <= 0) return;
 
     hp--;
     enemy.setData("hp", hp);
-
+  
     const hearts = enemy.getData("hearts") as Phaser.GameObjects.Image[];
     if (hearts && hearts[hp]) {
         const heart = hearts[hp];
@@ -994,7 +1204,7 @@ export default class GameScene extends Phaser.Scene {
             heart.setVisible(false);
         });
     }
-
+  
     if (hp === 0) {
       enemy.stop();
       if (hearts) {
@@ -1002,11 +1212,14 @@ export default class GameScene extends Phaser.Scene {
               this.time.delayedCall(i * 900, () => h.destroy());
           });
       }
-
+  
       enemy.destroy();
       this.enemies = this.enemies.filter(e => e !== enemy);
+      
+      this.checkWinCondition();
+    }
   }
-  }
+
   private getAttackHitbox(): Phaser.Geom.Rectangle {
     if (!this.hero.frame) return new Phaser.Geom.Rectangle(this.hero.x, this.hero.y, 0, 0);
 
@@ -1037,7 +1250,7 @@ export default class GameScene extends Phaser.Scene {
       this.hero.setFlipX(this.facingRight ? false : true);
 
       this.hero.play("attack"+this.userClass, true);
-  
+      this.updateHeroFacing();
       const attackHitbox = this.getAttackHitbox();
   
       this.enemies.forEach(enemy => {
@@ -1065,16 +1278,20 @@ export default class GameScene extends Phaser.Scene {
     const isMage = this.userClass.toLowerCase() === "mage";
     const isWalking = this.hero.anims.isPlaying && this.hero.anims.currentAnim?.key.includes("walk");
     
-    let baseFacesRight = true;
-    if(isMage && isWalking){
-      baseFacesRight = false;
+    if(isMage && !isWalking){
+      if (this.facingRight) {
+        this.hero.setFlipX(true);
+      } else {
+        this.hero.setFlipX(false);
+      }
+    } else {
+      if (this.facingRight) {
+        this.hero.setFlipX(false);
+      } else {
+        this.hero.setFlipX(true);
+      }
     }
 
-    if (this.facingRight) {
-      this.hero.setFlipX(!baseFacesRight);
-    } else {
-      this.hero.setFlipX(baseFacesRight);
-    }
   }
 
   // Hero damege taken
@@ -1122,12 +1339,26 @@ export default class GameScene extends Phaser.Scene {
     if (this.isDead) return;
 
     this.isDead = true;
+    if (this.hero.body) {
+      (this.hero.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
+    }
+    this.hero.stop();
+    
     this.isAttacking = true;
 
-    this.hero.stop();
 
     this.hero.setTexture(this.userClass+"Death");
-    this.hero.play("death");
+    this.hero.play("death" + this.userClass, true);
+    fetch("http://localhost:7071/api/update_game_lobby", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            dungeonCode: this.dungeonCode,
+            userId: this.user.uid,
+            actionType: "PLAYER_DIED",
+            targetId: this.userClass
+        })
+    }).catch(err => console.error(err));
 
     this.cameras.main.stopFollow();
 
@@ -1216,11 +1447,53 @@ export default class GameScene extends Phaser.Scene {
 
     this.isDead = false;
     this.isAttacking = false;
-    this.hero.setTexture("kng", 0);
+    this.hero.play("death" + this.userClass, true);
 
     const hearts = this.data.get("hearts") as Phaser.GameObjects.Image[];
     hearts.forEach(h => h.setVisible(true));
 
     this.cameras.main.startFollow(this.hero);
+  }
+
+  private checkWinCondition() {
+    if (this.isGameWon) return;
+
+    const activeEnemies = this.enemies.filter(e => e && e.active);
+    const activeItems = this.itemsInScene.filter(i => i && i.active);
+
+    if (activeEnemies.length === 0 && activeItems.length === 0){
+      this.triggerWin(); 
+    }
+  }
+
+  private triggerWin() {
+    this.isGameWon = true;
+    if (this.hero && this.hero.active){
+      this.hero.stop();
+      this.hero.play("death" + this.userClass, true);
+    }
+
+    const winPanel = new GenericPanel("generic-panel", "panel-content", "overlay");
+    winPanel.hide = () => {
+
+    };
+
+    const winHtml = `
+        <div class="victory-box">
+            <h2 class="victory-title">DUNGEON CLEARED!</h2>
+            <p class="victory-text">You defeated all enemies<br>and collected all items.</p>
+            <button id="win-exit-btn" class="victory-btn">
+                RETURN TO HOME
+            </button>
+        </div>
+    `;
+    winPanel.show(winHtml);
+
+    const extitBtn = document.getElementById("win-exit-btn");
+    if (extitBtn) {
+      extitBtn.addEventListener("click", () => {
+        window.location.href = "homepage.html";
+      });
+    }
   }
 }
