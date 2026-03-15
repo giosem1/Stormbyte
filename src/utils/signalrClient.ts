@@ -2,8 +2,10 @@ import * as signalR from "@microsoft/signalr";
 import type { User } from "../types/types";
 
 export let connection: signalR.HubConnection;
+export let currentUserId: string = "";
 
 export function createConnection(user: User) {
+    currentUserId = user.uid
     connection = new signalR.HubConnectionBuilder()
         .withUrl("http://localhost:7071/api", {
             withCredentials: true,
@@ -45,6 +47,31 @@ function registerGlobalNotificationListeners(){
         if (!alreadyExists){
             savedNotifs.push({
                 type: "dungeon_invite",
+                dungeonCode: payload.dungeonCode,
+                dungeonName: payload.dungeonName,
+                ownerUid: payload.ownerUid,
+                ownerUsername: payload.ownerUsername,
+                timestamp: payload.timestamp
+            });
+    
+            localStorage.setItem("app_notifications", JSON.stringify(savedNotifs));
+            window.dispatchEvent(new Event("notifications_updated"));
+        }
+    });
+
+    connection.on("GameInviteReceived", (payload) => {
+        if (payload.ownerUid === currentUserId) {
+            return;
+        }
+        const savedNotifs = JSON.parse(localStorage.getItem("app_notifications") || "[]");
+        const alreadyExists = savedNotifs.some((n: any) => 
+            n.type === "game_invite" &&
+            n.dungeonCode === payload.dungeonCode &&
+            n.ownerUid === payload.ownerUid
+        );
+        if (!alreadyExists){
+            savedNotifs.push({
+                type: "game_invite",
                 dungeonCode: payload.dungeonCode,
                 dungeonName: payload.dungeonName,
                 ownerUid: payload.ownerUid,

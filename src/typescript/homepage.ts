@@ -186,6 +186,37 @@ notificationBell.addEventListener("click", () => {
       `;
     }
 
+    if (n.type === "game_invite") {
+      const dungeonNameText = n.dungeonName || "Avventura Epica";
+      return `
+        <div class="flex flex-col border border-red-500/50 bg-red-900/20 rounded-lg p-4 mb-3 shadow-lg shadow-red-900/20 relative overflow-hidden">
+          <div class="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>
+
+          <div class="flex items-center gap-3 mb-3">
+            <div class="text-3xl">🎮</div>
+            <span class="text-white text-sm leading-tight">
+              <span class="text-red-400 font-bold text-base tracking-wide">
+                ${n.ownerUsername}
+              </span><br/>
+              ti ha invitato a GIOCARE nel dungeon<br/>
+              <span class="text-yellow-400 font-bold text-base">
+                ${dungeonNameText}
+              </span>
+            </span>
+          </div>
+
+          <div class="flex gap-3 mt-1">
+            <button class="panel-btn join w-full text-center font-bold !bg-red-600 hover:!bg-red-500 !border-transparent transition-colors shadow-[0_0_10px_rgba(239,68,68,0.5)]" data-index="${index}">
+              GIOCA
+            </button>
+            <button class="panel-btn reject w-full text-center font-bold !bg-gray-600 hover:!bg-gray-500 !border-transparent transition-colors" data-index="${index}">
+              IGNORA
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
     return "";
   }).join("");
 
@@ -221,31 +252,43 @@ notificationBell.addEventListener("click", () => {
       const session = getSession();
       if (!session) throw new Error("Sessione non valida");
 
-      const res = await fetch("http://localhost:7071/api/join_lobby", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.token}`
-        },
-        body: JSON.stringify({
-          dungeonCode: notif.dungeonCode,
-          userId: session.user.uid
-        })
-      });
+      if (notif.type === "dungeon_invite") {
+          const res = await fetch("http://localhost:7071/api/join_lobby", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session.token}`
+            },
+            body: JSON.stringify({
+              dungeonCode: notif.dungeonCode,
+              userId: session.user.uid
+            })
+          });
+    
+          const data = await res.json();
+    
+          if (!res.ok) {
+            throw new Error(data.error);
+          }
+        
+          localStorage.setItem("dungeonCode", notif.dungeonCode);
+          localStorage.setItem("isGuest", "true");
+          window.location.href = "createDungeon.html";
+      } else if (notif.type === "game_invite") {
+        const res = await fetch("http://localhost:7071/api/retrive_dungeon?code=" + notif.dungeonCode);
+        const dungeonData = await res.json();
 
-      const data = await res.json();
+        localStorage.setItem("dungeon", JSON.stringify(dungeonData));
+        localStorage.setItem("host_username", notif.ownerUsername);
 
-      if (!res.ok) {
-        throw new Error(data.error);
+        localStorage.setItem("is_game_guest", "true");
+        window.location.href = "dungeonGame.html";
       }
 
       notifications.splice(index, 1);
       saveAndRefreshNotifications();
       panel.hide();
 
-      localStorage.setItem("dungeonCode", notif.dungeonCode);
-
-      window.location.href = "createDungeon.html";
 
     } catch (err: any) {
       console.error(err);

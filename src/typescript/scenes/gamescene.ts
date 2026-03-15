@@ -29,6 +29,10 @@ export default class GameScene extends Phaser.Scene {
   private isDead = false;
   private otherPlayers: Map<string, Phaser.GameObjects.Sprite> = new Map();
   private dungeonCode!: string;
+  private isGuest: boolean = false;
+  private lastSyncData = { x: 0, y: 0, anim: "", flipX: false };
+  private lastSyncTime = 0;
+  private facingRight: boolean = true;
 
   constructor() {
     super("GameScene");
@@ -42,13 +46,9 @@ export default class GameScene extends Phaser.Scene {
     }
 
     this.user = session.user
-    this.userClass = this.user.classe || "Knight";
+    this.userClass = this.user.class || "Knight";
     this.dungeonCode = localStorage.getItem("current_game_dungeon") || "";
 
-   /*  if (!this.dungeonCode){
-      console.error("No dungeon selected!");
-      window.location.href = "homepage.html";
-    } */
   }
 
   async preload() {
@@ -69,6 +69,7 @@ export default class GameScene extends Phaser.Scene {
         frameHeight: 217
     });
 
+    console.log("Classe nel preload: ", this.userClass)
     // Hero spritesheet
     //Knight Spritesheet 
     this.load.spritesheet("kng", "assets/KnightAnimation/KnightWalk.png", {
@@ -79,7 +80,7 @@ export default class GameScene extends Phaser.Scene {
         frameWidth: 439,
         frameHeight: 408
     });
-    this.load.spritesheet(this.userClass+"Death", "assets/KnightAnimation/KnightDeath.png", {
+    this.load.spritesheet("KnightDeath", "assets/KnightAnimation/KnightDeath.png", {
         frameWidth: 361,
         frameHeight: 288
     });
@@ -93,7 +94,7 @@ export default class GameScene extends Phaser.Scene {
         frameWidth: 383,
         frameHeight: 321
     });
-    this.load.spritesheet(this.userClass+"Death", "assets/MageAnimation/MageDeath.png", {
+    this.load.spritesheet("MageDeath", "assets/MageAnimation/MageDeath.png", {
         frameWidth: 404,
         frameHeight: 285
     });
@@ -107,7 +108,7 @@ export default class GameScene extends Phaser.Scene {
         frameWidth: 389,
         frameHeight: 378
     });
-    this.load.spritesheet(this.userClass+"Death", "assets/ArcherAnimation/ArcherDeath.png", {
+    this.load.spritesheet("ArcherDeath", "assets/ArcherAnimation/ArcherDeath.png", {
         frameWidth: 293,
         frameHeight: 284
     });
@@ -149,34 +150,129 @@ export default class GameScene extends Phaser.Scene {
 
   async create() {
     const connection = createConnection(this.user);
-
     try {
-      await startConnection();
-      await fetch("http://localhost:7071/api/join_game", {
-        method: "POST",
-        headers: { "Content-Type": "application/json"},
-        body: JSON.stringify({
-          dungeonCode: this.dungeonCode,
-          userId: this.user.uid,
-          username: this.user.username
-        })
-      });
+      await startConnection();      
+      const rawDungeon = localStorage.getItem("dungeon");
+      if (!rawDungeon){
+        throw new Error("Dungeon not found");
+      }
+
+      this.dungeon = JSON.parse(rawDungeon);
+      this.dungeonCode = this.dungeon.code;
+
+      this.isGuest = localStorage.getItem("is_game_guest") === "true";
+  
+      if (this.isGuest) {
+
+        await fetch("http://localhost:7071/api/join_game", {
+          method: "POST",
+          headers: { "Content-Type": "application/json"},
+          body: JSON.stringify({
+            dungeonCode: this.dungeonCode,
+            userId: this.user.uid,
+            username: this.user.username,
+            class: this.userClass
+          })
+        });
+        localStorage.removeItem("is_game_guest");
+        localStorage.removeItem("host_username");
+      } else {
+        await fetch("http://localhost:7071/api/create_lobby", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            dungeonCode: this.dungeonCode,
+            userId: this.user.uid 
+          })
+        });
+      }
       
     }catch(err){
       console.error("Error during the connection: ", err)
     }
-    connection.on
+
+    connection.on("PlayerJoinedGame", async (playerData: any) => {
+      if (playerData.uid !== this.user.uid) {
+
+        const startRoom = this.dungeon.rooms.find((r: any) => r.asset.includes("loginroom"));
+        const startX = startRoom ? startRoom.x + startRoom.width / 2 : 0;
+        const startY = startRoom ? startRoom.y + startRoom.height / 2 : 0;
+
+        this.spawnOtherPlayer(playerData, startX, startY);
+
+        if (!this.isGuest && this.hero) {
+          try {
+            await fetch("http://localhost:7071/api/sync_player_move", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                dungeonCode: this.dungeonCode,
+                data: {
+                  userId: this.user.uid,
+                  x: this.hero.x,
+                  y: this.hero.y,
+                  anim: this.hero.anims.currentAnim?.key || "",
+                  flipX: this.hero.flipX,
+                  class: this.userClass
+                }
+              })
+            });
+          }catch (err){
+            console.error(err)
+          }
+        }
+      }
+    });
+
+    connection.on("PlayerMoved", (data: any) => {
+      if (data.userId === this.user.uid) return;
+
+      let otherHero = this.otherPlayers.get(data.userId);
+
+      if (!otherHero) {
+        this.spawnOtherPlayer({ 
+          uid: data.userId, 
+          username: data.username,
+          class: data.class || "Knight" 
+        }, data.x, data.y);
+        otherHero = this.otherPlayers.get(data.userId)!;
+      }
+      otherHero.x = data.x;
+      otherHero.y = data.y;
+      const otherSprite = otherHero.getData("sprite");
+
+      if (!otherSprite) return;
+
+      otherSprite.setFlipX(data.flipX)
+
+      if (data.anim && data.anim !== ""){
+        otherSprite.play(data.anim, true);
+      } else {
+        otherSprite.stop();
+
+        const pClass = data.class || "Knight";
+        let idleTexture = "KnightDeath";
+
+        if (pClass.toLowerCase() === "mage" ) idleTexture = "MageDeath";
+        if (pClass.toLowerCase() === "archer" ) idleTexture = "ArcherDeath";
+
+        otherSprite.setTexture(idleTexture, 0);
+      }
+    });
+
+    connection.on("PlayerLeftGame", (uid: string) => {
+      const otherPlayer = this.otherPlayers.get(uid);
+
+      if (otherPlayer) {
+        otherPlayer.destroy();
+        this.otherPlayers.delete(uid);
+      }
+    });
 
     if (!this.anims.exists("walk")) {
       this.createAllAnimations();
     }
     
-    const rawDungeon = localStorage.getItem("dungeon")
-    if(!rawDungeon){
-      window.location.href = "homepage.html";
-      throw new Error("Dungeon not foung");
-    }
-    this.dungeon = JSON.parse(rawDungeon);
     const { width, height } = this.scale;
     const bg = this.add.tileSprite(0, 0, width, height, "bg-stone");
 
@@ -290,11 +386,30 @@ export default class GameScene extends Phaser.Scene {
           </div>
           <button id="closeInvite" class="panel-btn mt-4 w-full text-center text-white font-bold">CLOSE</button>
       `);
-      document.querySelectorAll(".invite-btn").forEach((btn) => {
+      document.querySelectorAll(".invite-btn").forEach((btn, index) => {
           const button = btn as HTMLButtonElement;
-          button.addEventListener("click", () => {
+          button.addEventListener("click", async () => {
               button.textContent = "✓";
               button.disabled = true;
+
+              const friendToInvite = friendsList[index];
+
+              try {
+                await fetch("http://localhost:7071/api/invite_game", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    toUserid: friendToInvite.uid,
+                    fromUserId: this.user.uid,
+                    fromUsername: this.user.username,
+                    dungeonCode: this.dungeonCode,
+                    dungeonName: this.dungeon.name
+                  })
+                });
+              }catch (err) {
+                button.textContent = "+";
+                button.disabled = false;
+              }
           });
       });
       document.getElementById("closeInvite")!.addEventListener("click", () => {
@@ -333,7 +448,81 @@ export default class GameScene extends Phaser.Scene {
     });
     this.load.start();
   }
+  update(): void {
+    if (this.hero && !this.isDead) {
+      this.broadcastMovement()
+    }
+  }
+  private spawnOtherPlayer(playerData: any, startX: number, startY: number ){
+    const pClass = playerData.class || "Knight";
+    let spriteKey = "KnightDeath";
 
+    if (pClass === "Mage") spriteKey = "MageDeath";
+    else if (pClass === "Archer") spriteKey = "ArcherDeath";
+
+    const otherSprite = this.add.sprite(0, 0, spriteKey, 0);
+    otherSprite.setOrigin(0.5, 1);
+
+    const frame = this.textures.get(spriteKey).get("0");
+    
+    if (frame) {
+      otherSprite.setScale(HERO_TARGET_HEIGHT / frame.height);
+    }
+
+    const nameTag = this.add.text(0, -HERO_TARGET_HEIGHT - 10, playerData.username, {
+      fontFamily: '"Press Start 2P"',
+      fontSize: "12px",
+      color: "#facc15",
+      stroke: "#000000",
+      strokeThickness: 3
+    }).setOrigin(0.5);
+
+    const playerContainer = this.add.container(startX, startY, [otherSprite, nameTag]);
+    playerContainer.setDepth(10);
+
+    playerContainer.setData("sprite", otherSprite);
+    playerContainer.setData("class", pClass);
+
+    this.otherPlayers.set(playerData.uid, playerContainer as any);
+  }
+
+  private async broadcastMovement() {
+    if (!this.hero || !this.user) return;
+
+    const currentX = Math.round(this.hero.x);
+    const currentY = Math.round(this.hero.y);
+    const isPlaying = this.hero.anims.isPlaying;
+    const currentAnim = isPlaying ? (this.hero.anims.currentAnim?.key || "") : "";
+    const currentFlipX = this.hero.flipX;
+
+    if (this.lastSyncData.x === currentX && this.lastSyncData.y  === currentY && this.lastSyncData.anim === currentAnim && this.lastSyncData.flipX === currentFlipX) return;
+
+    const now = Date.now();
+
+    if(now - this.lastSyncTime < 50) return;
+    this.lastSyncData = {x: currentX, y: currentY, anim: currentAnim, flipX: currentFlipX };
+    try{
+
+      await fetch("http://localhost:7071/api/sync_player_move", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dungeonCode: this.dungeonCode,
+          data: {
+            userId: this.user.uid,
+            username: this.user.username,
+            class: this.userClass,
+            x: currentX,
+            y: currentY,
+            anim: currentAnim,
+            flipX: currentFlipX
+          }
+        })
+      })
+    } catch (err){
+      console.error(err);
+    }
+  }
   private createUI() {
     const { width, height } = this.scale;
 
@@ -700,6 +889,15 @@ export default class GameScene extends Phaser.Scene {
     });
   }
   
+  //Hero
+  private getTextureKey(playerClass: string): string {
+    switch (playerClass.toLowerCase()) {
+      case "mage": return "mg";
+      case "archer": return "arc";
+      case "knight": 
+      default: return "kng";
+    }
+  }
 
   private spawnHero() {
     const startRoom = this.dungeon.rooms.find(r =>
@@ -713,8 +911,8 @@ export default class GameScene extends Phaser.Scene {
 
     const x = startRoom.x + startRoom.width / 2;
     const y = startRoom.y + startRoom.height / 2;
-
-    this.hero = this.add.sprite(x, y, this.userClass+"Death", 0);
+    const textureKey = this.getTextureKey(this.userClass);
+    this.hero = this.add.sprite(x, y, textureKey, 0);
     this.hero.setOrigin(0.5, 1);
     this.hero.setDepth(10);
     const frame = this.textures.get(this.userClass+"Death").get("0");
@@ -751,13 +949,13 @@ export default class GameScene extends Phaser.Scene {
 
       if (cursors.left?.isDown || keys.left?.isDown) {
           this.hero.x -= speed * dt;
+          this.facingRight = false;
           this.hero.play("walk"+this.userClass, true);
-          this.hero.flipX = true;
           moving = true;
       } else if (cursors.right?.isDown || keys.right?.isDown) {
           this.hero.x += speed * dt;
+          this.facingRight = true; 
           this.hero.play("walk"+this.userClass, true);
-          this.hero.flipX = false;
           moving = true;
       } else if (cursors.up?.isDown || keys.up?.isDown) {
           this.hero.y -= speed * dt;
@@ -771,8 +969,10 @@ export default class GameScene extends Phaser.Scene {
         
       if (!moving && !this.isAttacking) {
         this.hero.stop();
-        this.hero.setTexture(this.userClass+"Death", 0); 
+        this.hero.setTexture(this.userClass+"Death", 0);
       }
+
+      this.updateHeroFacing();
       this.activeTraps();
       this.updateEnemies();
       this.clampAndHandleRoomTransition(prevX, prevY);
@@ -834,6 +1034,8 @@ export default class GameScene extends Phaser.Scene {
   
       this.isAttacking = true;
   
+      this.hero.setFlipX(this.facingRight ? false : true);
+
       this.hero.play("attack"+this.userClass, true);
   
       const attackHitbox = this.getAttackHitbox();
@@ -850,10 +1052,31 @@ export default class GameScene extends Phaser.Scene {
     this.hero.on("animationcomplete", (anim: Phaser.Animations.Animation) => {
         if (anim.key === "attack"+this.userClass) {
             this.isAttacking = false;
-            this.hero.setTexture("kngDeath", 0);
+            const correctDeathKey = this.userClass + "Death";
+            this.updateHeroFacing();
+            this.hero.setTexture(correctDeathKey, 0);
         }
     });
   }
+
+  private updateHeroFacing() {
+    if (!this.hero) return;
+
+    const isMage = this.userClass.toLowerCase() === "mage";
+    const isWalking = this.hero.anims.isPlaying && this.hero.anims.currentAnim?.key.includes("walk");
+    
+    let baseFacesRight = true;
+    if(isMage && isWalking){
+      baseFacesRight = false;
+    }
+
+    if (this.facingRight) {
+      this.hero.setFlipX(!baseFacesRight);
+    } else {
+      this.hero.setFlipX(baseFacesRight);
+    }
+  }
+
   // Hero damege taken
   private takeDamage(amount: number) {
     const hearts = this.data.get("hearts") as Phaser.GameObjects.Image[];

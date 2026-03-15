@@ -279,15 +279,6 @@ window.addEventListener("mousemove", (e) => {
       });
     }
 
-    /* if (sendEventGlobal) {
-      sendEventGlobal("MOVE_ROOM", {
-        roomId: item.id,
-        x: item.x,
-        y: item.y,
-        src: item.src,
-        type: item.type
-      });
-    } */
   }
 });
 
