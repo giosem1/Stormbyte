@@ -73,6 +73,7 @@ function registerGlobalNotificationListeners(){
             savedNotifs.push({
                 type: "game_invite",
                 dungeonCode: payload.dungeonCode,
+                lobbyId: payload.lobbyId,
                 dungeonName: payload.dungeonName,
                 ownerUid: payload.ownerUid,
                 ownerUsername: payload.ownerUsername,

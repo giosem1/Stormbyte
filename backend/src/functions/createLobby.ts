@@ -1,17 +1,25 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
+import { app, HttpRequest, HttpResponseInit, InvocationContext, output } from "@azure/functions";
 import { createLobby, getLobby } from "../shared/lobbyStore";
+const signalROutput = output.generic({
+    type: 'signalR',
+    name: 'signalRMessages',
+    hubName: 'notifications'
+});
+
 interface CreateLobby{
     dungeonCode: string,
-    userId: string
+    userId: string,
+    lobbyId?: string,
 }
 app.http("create_lobby", {
   methods: ["POST"],
   authLevel: "anonymous",
   route: "create_lobby",
+  extraOutputs: [signalROutput],
   handler: async (request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
         try {
             const body = await request.json() as CreateLobby;
-            const { dungeonCode, userId } = body;
+            const { dungeonCode, userId, lobbyId } = body;
 
             if (!dungeonCode || !userId) {
                 return {
@@ -19,16 +27,21 @@ app.http("create_lobby", {
                     jsonBody: { error: "Parametri mancanti" }
                 };
             }
+            const activeRoomId = lobbyId || dungeonCode;
 
-            const existing = getLobby(dungeonCode);
-            if (existing) {
-                return {
-                    status: 200,
-                    jsonBody: existing
-                };
+            let lobby = getLobby(activeRoomId);
+            if (!lobby) {
+                lobby = createLobby(activeRoomId, userId);
             }
 
-            const lobby = createLobby(dungeonCode, userId);
+            const siganlRMessages = [
+                {
+                    userId: userId,
+                    groupName: activeRoomId,
+                    action: "add"
+                }
+            ];
+            context.extraOutputs.set(signalROutput, siganlRMessages);
 
             return {
                 status: 201,

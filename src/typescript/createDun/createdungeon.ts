@@ -349,7 +349,7 @@ export function initDungeonEditor() {
       });
       if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
-    /* observeCanvasChanges(); */
+    
     setupInvitePanel();
     setupChat();
     renderItems("rooms");

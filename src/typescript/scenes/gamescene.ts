@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import GenericPanel from "../../ui/pannel";
 import { getSession } from "../../utils/session";
-import { createConnection, startConnection } from "../../utils/signalrClient";
+import { createConnection, startConnection, onChatMessage } from "../../utils/signalrClient";
 import { ENEMY_CONFIG, TRAP_CONFIG, type Dungeon, type ItemType, type RoomSave, type User } from "../../types/types";
 import { createArcherAnimations, createEnemyAnimations, createHeartAnimations, createKnightAnimations, createMageAnimations, trapAnimation } from "./animation";
 
@@ -18,6 +18,7 @@ export default class GameScene extends Phaser.Scene {
   private user!: User;
   private userClass!: string;
   private dungeon!: Dungeon;
+  private lobbyId!: string;
   private hero!: Phaser.GameObjects.Sprite;
   private traps: Phaser.GameObjects.Sprite[] = [];
   private enemies: Phaser.GameObjects.Sprite[] = [];
@@ -51,6 +52,14 @@ export default class GameScene extends Phaser.Scene {
     this.user = session.user
     this.userClass = this.user.class || "Knight";
     this.dungeonCode = localStorage.getItem("current_game_dungeon") || "";
+    
+    this.isGuest = localStorage.getItem("is_game_guest") === "true";
+
+    if (this.isGuest) {
+      this.lobbyId = localStorage.getItem("current_lobby_id") || this.dungeonCode; 
+    } else {
+      this.lobbyId = `${this.dungeonCode}_${this.user.username}`;
+    }
 
   }
 
@@ -72,7 +81,6 @@ export default class GameScene extends Phaser.Scene {
         frameHeight: 217
     });
 
-    console.log("Classe nel preload: ", this.userClass)
     // Hero spritesheet
     //Knight Spritesheet 
     this.load.spritesheet("kng", "assets/KnightAnimation/KnightWalk.png", {
@@ -174,18 +182,20 @@ export default class GameScene extends Phaser.Scene {
             dungeonCode: this.dungeonCode,
             userId: this.user.uid,
             username: this.user.username,
-            class: this.userClass
+            class: this.userClass,
+            lobbyId: this.lobbyId
           })
         });
         localStorage.removeItem("is_game_guest");
-        localStorage.removeItem("host_username");
+        localStorage.removeItem("current_lobby_id");
       } else {
         await fetch("http://localhost:7071/api/create_lobby", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             dungeonCode: this.dungeonCode,
-            userId: this.user.uid 
+            userId: this.user.uid,
+            lobbyId: this.lobbyId
           })
         });
       }
@@ -210,6 +220,7 @@ export default class GameScene extends Phaser.Scene {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 dungeonCode: this.dungeonCode,
+                lobbyId: this.lobbyId,
                 data: {
                   userId: this.user.uid,
                   x: this.hero.x,
@@ -408,8 +419,22 @@ export default class GameScene extends Phaser.Scene {
     exitButton.setScrollFactor(0);
     exitButton.setDepth(100);
     exitButton.setInteractive();
-    exitButton.on("pointerdown", () => {
-      window.location.href = 'homepage.html';
+    exitButton.on("pointerdown", async () => {
+      exitButton.disableInteractive();
+      try {
+        await fetch("http://localhost:7071/api/leave_game", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: this.user.uid,
+            lobbyId: this.lobbyId
+          })
+        });
+      }catch(err) {
+        console.error("Error during the exit: ", err);
+      } finally{
+        window.location.href = 'homepage.html';
+      }
     });
     exitButton.on("pointerover", () => {
       exitButton.setColor("#facc15");
@@ -473,11 +498,12 @@ export default class GameScene extends Phaser.Scene {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
-                    toUserid: friendToInvite.uid,
+                    toUserId: friendToInvite.uid,
                     fromUserId: this.user.uid,
                     fromUsername: this.user.username,
                     dungeonCode: this.dungeonCode,
-                    dungeonName: this.dungeon.name
+                    dungeonName: this.dungeon.name,
+                    lobbyId: this.lobbyId
                   })
                 });
               }catch (err) {
@@ -520,6 +546,7 @@ export default class GameScene extends Phaser.Scene {
     this.load.on('loaderror', (file: any) => {
       console.error("Errore caricamento: ", file.key, file.src);
     });
+    this.setupChat()
     this.load.start();
   }
   update(): void {
@@ -582,6 +609,7 @@ export default class GameScene extends Phaser.Scene {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           dungeonCode: this.dungeonCode,
+          lobbyId: this.lobbyId,
           data: {
             userId: this.user.uid,
             username: this.user.username,
@@ -662,7 +690,111 @@ export default class GameScene extends Phaser.Scene {
     }
     this.load.start();
   } 
-  
+
+  private setupChat(){
+    const messageInput = document.getElementById("message") as HTMLInputElement;
+    const sendBtn = document.getElementById("send-btn") as HTMLButtonElement;
+    const messagesContainer = document.getElementById("messages") as HTMLDivElement;
+
+    const chatBox = document.getElementById("chat-box") as HTMLDivElement;
+    const chatToggleBtn = document.getElementById("chat-toggle-btn") as HTMLDivElement;
+    const chatBadge = document.getElementById("chat-badge") as HTMLSpanElement;
+
+    if (!messageInput || !sendBtn || !messagesContainer) return;
+
+    messagesContainer.innerHTML = "";
+    let unreadCount = 0;
+
+    const sendMessage = () => {
+      const text = messageInput.value.trim();
+      if (!text) return;
+      
+      fetch("http://localhost:7071/api/update_game_lobby", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dungeonCode: this.dungeonCode,
+          lobbyId: this.lobbyId,
+          userId: this.user.uid,
+          actionType: "CHAT_MESSAGE",
+          targetId: "chat",
+          username: this.user.username,
+          text: text
+        })
+      }).catch(err => console.error(err));
+      
+      messageInput.value = "";
+      messageInput.blur();
+    };
+    
+    sendBtn.addEventListener("click", sendMessage);
+    
+    chatToggleBtn.addEventListener("click", () => {
+      chatBox.classList.toggle("hidden");
+
+      if (!chatBox.classList.contains("hidden")) {
+        messageInput.focus();
+
+        unreadCount = 0;
+        if(chatBadge) {
+          chatBadge.classList.add("hidden");
+          chatBadge.innerText = "0";
+        }
+      } else {
+        messageInput.blur();
+      }
+    })
+    messageInput.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key === "Enter") {
+        sendMessage();
+      } else if (e.key === "Escape") {
+        messageInput.blur();
+        chatBox.classList.add("hidden");
+      }
+    });
+
+    messageInput.addEventListener("keyup", (e) => e.stopPropagation());
+    messageInput.addEventListener("keypress", (e) => e.stopPropagation());
+
+    messageInput.addEventListener("focus", () => { 
+      if (this.input.keyboard) {
+        this.input.keyboard.resetKeys();
+        this.input.keyboard!.enabled = false;
+        this.input.keyboard.clearCaptures();
+      }
+    });
+    messageInput.addEventListener("blur", () => { 
+      if (this.input.keyboard) {
+        this.input.keyboard.enabled = true; 
+
+        this.input.keyboard.addCapture('W,A,S,D,E,SPACE');
+      }  
+    });
+
+    onChatMessage((data: any) => {
+      const msgElement = document.createElement("p");
+      const sender = data.username || "Unknow";
+      const texMsg = data.text || "";
+      
+      msgElement.innerHTML = `<strong>${sender}:</strong> ${texMsg}`;
+
+      msgElement.style.margin = "5px 0";
+      messagesContainer.appendChild(msgElement);
+
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      
+      if (chatBox.classList.contains("hidden") && sender !== this.user.username) {
+        unreadCount++;
+        if (chatBadge) {
+          chatBadge.innerText = unreadCount > 99 ? "99+" : unreadCount.toString();
+          chatBadge.classList.remove("hidden");
+        }
+      }
+    });
+
+  }
+
   private buildDungeon() {
     this.dungeon.rooms.forEach(room => {
       const scale = SCALE_RULES.room;
@@ -804,6 +936,7 @@ export default class GameScene extends Phaser.Scene {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         dungeonCode: this.dungeonCode,
+        lobbyId: this.lobbyId,
         userId: this.user.uid,
         actionType: "ITEM_COLLECTED",
         targetId: itemId
@@ -923,9 +1056,10 @@ export default class GameScene extends Phaser.Scene {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             dungeonCode: this.dungeonCode,
+            lobbyId: this.lobbyId,
             userId: this.user.uid,
             actionType: "TRAP_ACTIVATED",
-            targetType: trap.getData("trapId")
+            targetId: trap.getData("trapId")
           })
         }).catch(err => console.error(err));
 
@@ -1001,54 +1135,16 @@ export default class GameScene extends Phaser.Scene {
         this.broadcastEnemyState(enemy.getData("enemyId"), "idle");
       }
 
-      /* const heroC = this.hero.getCenter();
-      const enemyC = enemy.getCenter();
-  
-      const dist = Phaser.Math.Distance.Between(
-        heroC.x,
-        heroC.y,
-        enemyC.x,
-        enemyC.y
-      );
-  
-      const state = enemy.getData("state");
-      const cfg = ENEMY_CONFIG.default;
-  
-      if (dist <= cfg.alertRange && state === "idle") {
-        enemy.setData("state", "alert");
-        enemy.play("enemy_alert", true);
-
-        this.broadcastEnemyState(enemy.getData("enemyId"), "alert");
-  
-        this.time.delayedCall(cfg.alertDuration, () => {
-          if (enemy.getData("state") === "alert") {
-            enemy.setData("state", "attack");
-            enemy.play("enemy_attack", true);
-            
-            this.broadcastEnemyState(enemy.getData("enemyId"), "attack");
-
-            this.time.delayedCall(500, () => {
-              if (!this.isDead) {
-                this.takeDamage(2);
-              }
-            });
-          }
-        });
-      }
-  
-      if (dist > cfg.alertRange && state !== "idle") {
-        enemy.setData("state", "idle");
-        enemy.play("enemy_idle", true);
-      } */
     });
   }
 
   private broadcastEnemyState(enemyId: string, newState: string){
-    fetch("http://localhost:7071/api/updated_game_lobby", {
+    fetch("http://localhost:7071/api/update_game_lobby", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         dungeonCode: this.dungeonCode,
+        lobbyId: this.lobbyId,
         userId: this.user.uid,
         actionType: "ENEMY_STATE_CHANGED",
         targetId: `${enemyId}::${newState}`
@@ -1181,6 +1277,7 @@ export default class GameScene extends Phaser.Scene {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         dungeonCode: this.dungeonCode,
+        lobbyId: this.lobbyId,
         userId: this.user.uid,
         actionType: "ENEMY_DAMAGED",
         targetId: enemyId
@@ -1296,6 +1393,8 @@ export default class GameScene extends Phaser.Scene {
 
   // Hero damege taken
   private takeDamage(amount: number) {
+    if (this.isDead) return;
+
     const hearts = this.data.get("hearts") as Phaser.GameObjects.Image[];
     if (!hearts || amount <= 0) return;
 
@@ -1318,10 +1417,13 @@ export default class GameScene extends Phaser.Scene {
 
         animHeart.setScrollFactor(0);
         animHeart.setDepth(200);
+        animHeart.setOrigin(0, 0);
+        animHeart.setDisplaySize(38, 38);
 
-        animHeart.setDisplaySize(heart.displayWidth, heart.displayHeight);
+        animHeart.x -= 10;
+        animHeart.y -= 10;
 
-        animHeart.play("heartLose");
+        animHeart.play("heartLose", true);
 
         animHeart.once("animationcomplete", () => {
             animHeart.destroy();
@@ -1354,6 +1456,7 @@ export default class GameScene extends Phaser.Scene {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             dungeonCode: this.dungeonCode,
+            lobbyId: this.lobbyId,
             userId: this.user.uid,
             actionType: "PLAYER_DIED",
             targetId: this.userClass
@@ -1363,76 +1466,51 @@ export default class GameScene extends Phaser.Scene {
     this.cameras.main.stopFollow();
 
     this.hero.once("animationcomplete", () => {
-        const { width, height } = this.scale;
+        const gameOverPanel = new GenericPanel("generic-panel", "panel-content", "overlay");
 
-        const overlay = this.add.rectangle(
-            width / 2,
-            height / 2,
-            width,
-            height,
-            0x000000,
-            0.7
-        );
-        overlay.setScrollFactor(0);
-        overlay.setDepth(200);
-        const gameOverText = this.add.text(
-            width / 2,
-            height / 2 - 80,
-            "GAME OVER",
-            {
-                fontFamily: '"Press Start 2P"',
-                fontSize: "32px",
-                color: "#ff0000"
-            }
-        );
-        
-        gameOverText.setOrigin(0.5);
-        gameOverText.setScrollFactor(0);
-        gameOverText.setDepth(201);
+        const originalHide = gameOverPanel.hide.bind(gameOverPanel);
 
-        const reviveBtn = this.add.text(
-            width / 2,
-            height / 2,
-            "RESUSCITA",
-            {
-                fontFamily: '"Press Start 2P"',
-                fontSize: "16px",
-                color: "#ffffff",
-                backgroundColor: "#000000",
-                padding: { x: 12, y: 8 }
-            }
-        ).setOrigin(0.5)
-         .setScrollFactor(0)
-         .setDepth(201)
-         .setInteractive({ useHandCursor: true });
+        gameOverPanel.hide = () => {};
 
-        reviveBtn.on("pointerdown", () => {
-          overlay.destroy();
-          gameOverText.destroy();
-          reviveBtn.destroy();
-          exitBtn.destroy();
-          this.reviveHero();
+        const gameOverHTML = `
+            <div class="gameover-box">
+                <h2 class="gameover-title">SEI MORTO</h2>
+                <p class="gameover-text">Le tenebre del dungeon<br>hanno avuto la meglio su di te.</p>
+                
+                <div class="gameover-buttons">
+                    <button id="gameover-revive-btn" class="gameover-btn revive-btn">
+                        RIVIVI
+                    </button>
+                    <button id="gameover-exit-btn" class="gameover-btn">
+                        TORNA ALLA LOBBY
+                    </button>
+                </div>
+            </div>
+        `;
+
+        gameOverPanel.show(gameOverHTML);
+
+        this.time.delayedCall(100, () => {
+          const exitBtn = document.getElementById("gameover-exit-btn");
+          if (exitBtn) {
+            exitBtn.addEventListener("click", () => {
+              window.location.href = "homepage.html";
+            })
+          }
         });
 
-        const exitBtn = this.add.text(
-            width / 2,
-            height / 2 + 50,
-            "ESCI",
-            {
-                fontFamily: '"Press Start 2P"',
-                fontSize: "16px",
-                color: "#ffffff",
-                backgroundColor: "#000000",
-                padding: { x: 24, y: 8 }
+        const reviveBtn = document.getElementById("gameover-revive-btn");
+        if (reviveBtn) {
+          reviveBtn.addEventListener("click", () => {
+            originalHide();
+            const overlay = document.getElementById("overlay");
+            if (overlay) {
+              overlay.style.display = "none";
             }
-        ).setOrigin(0.5)
-         .setScrollFactor(0)
-         .setDepth(201)
-         .setInteractive({ useHandCursor: true });
 
-        exitBtn.on("pointerdown", () => {
-            window.location.href = "homepage.html";
-        });
+            this.reviveHero();
+          });
+        } 
     });
   }
   private reviveHero() {

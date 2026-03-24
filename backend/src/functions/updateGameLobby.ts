@@ -3,9 +3,12 @@ import { error, group } from "console";
 
 interface GameLobbyEvent {
     dungeonCode: string;
+    lobbyId: string;
     userId: string;
     actionType: string;
     targetId: string;
+    username?: string;
+    text?: string;
 }
 
 app.http("update_game_lobby", {
@@ -21,7 +24,7 @@ app.http("update_game_lobby", {
     ],
     handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
         try {
-            const { dungeonCode, userId, actionType, targetId } = await req.json() as GameLobbyEvent;
+            const { dungeonCode, lobbyId, userId, actionType, targetId, username, text } = await req.json() as GameLobbyEvent;
 
             if (!dungeonCode || !userId || !actionType || !targetId) {
                 return {
@@ -36,33 +39,43 @@ app.http("update_game_lobby", {
             if (actionType === "ITEM_COLLECTED") {
                 signalRMessages.push({
                     target: "ItemCollected",
-                    groupName: dungeonCode,
+                    groupName: lobbyId,
                     arguments: [targetId, userId]
                 });
             } else if (actionType === "ENEMY_DAMAGED") {
                 signalRMessages.push({
                     target: "EnemyDamaged",
-                    groupName: dungeonCode,
+                    groupName: lobbyId,
                     arguments: [targetId, userId]
                 });
             } else if (actionType === "PLAYER_DIED") {
                 signalRMessages.push({
                     target: "PlayerDied",
-                    groupName: dungeonCode,
+                    groupName: lobbyId,
                     arguments: [targetId, userId]
                 })
             } else if (actionType === "TRAP_ACTIVATED") {
                 signalRMessages.push({
                     target: "TrapActivated",
-                    groupName: dungeonCode,
+                    groupName: lobbyId,
                     arguments: [targetId, userId]
                 })
             } else if (actionType === "ENEMY_STATE_CHANGED") {
                 signalRMessages.push({
                     target: "EnemyStateChanged",
-                    groupName: dungeonCode,
+                    groupName: lobbyId,
                     arguments: [targetId, userId]
                 })
+            } else if (actionType === "CHAT_MESSAGE") {
+                signalRMessages.push({
+                    target: "ChatMessage",
+                    groupName: lobbyId,
+                    arguments: [{
+                        userId: userId,
+                        username: username,
+                        text: text
+                    }]
+                });
             }
 
             context.extraOutputs.set("signalRMessages", signalRMessages);

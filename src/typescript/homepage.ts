@@ -281,6 +281,12 @@ notificationBell.addEventListener("click", () => {
         localStorage.setItem("dungeon", JSON.stringify(dungeonData));
         localStorage.setItem("host_username", notif.ownerUsername);
 
+        localStorage.setItem("current_game_dungeon", notif.dungeonCode);
+
+        if (notif.lobbyId) {
+          localStorage.setItem("current_game_dungeon", notif.lobbyId);
+        }
+
         localStorage.setItem("is_game_guest", "true");
         window.location.href = "dungeonGame.html";
       }
@@ -534,6 +540,11 @@ chanllengeD.addEventListener("click", ()=>{
     );
 
     const dungeon = await response.json();
+    const uniqueLobbyId = `${dungCode}_${session.user.username}`;
+
+    localStorage.setItem("current_game_dungeon", dungCode);
+    localStorage.setItem("current_lobby_id", uniqueLobbyId);
+    localStorage.setItem("is_game_guest", "false");
     localStorage.setItem("user", JSON.stringify(user));
     localStorage.setItem("dungeon", JSON.stringify(dungeon));
     window.location.href = "dungeonGame.html";

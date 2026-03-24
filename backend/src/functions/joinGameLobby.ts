@@ -13,6 +13,7 @@ interface JoinGameLobby {
     userId: string;
     username: string;
     classe?: string;
+    lobbyId?: string;
 }
 
 app.http("join_game", {
@@ -23,7 +24,7 @@ app.http("join_game", {
     handler: async (request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
         try {
             const body = await request.json() as JoinGameLobby;
-            const { dungeonCode , userId, username, classe } = body;
+            const { dungeonCode , userId, username, classe, lobbyId } = body;
 
             if (!dungeonCode || !userId) {
                 return {
@@ -32,22 +33,24 @@ app.http("join_game", {
                 }
             }
 
-            let lobby = getLobby(dungeonCode);
+            const activeRoomId = lobbyId || dungeonCode;
+
+            let lobby = getLobby(activeRoomId);
             if (!lobby) {
-                lobby = createLobby(dungeonCode, userId);
+                lobby = createLobby(activeRoomId, userId);
             }
 
             const signalRMessages = [];
 
             signalRMessages.push({
                 userId: userId,
-                groupName: dungeonCode,
+                groupName: activeRoomId,
                 action: "add"
             });
 
             signalRMessages.push({
                 target: "PlayerJoinedGame",
-                groupName: dungeonCode,
+                groupName: activeRoomId,
                 arguments: [{
                     uid: userId,
                     username: username,

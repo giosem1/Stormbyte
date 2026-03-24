@@ -15,7 +15,7 @@ app.http('sync_player_move', {
     handler: async (request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
         try {
             const body = await request.json() as any;
-            const { dungeonCode, data } = body;
+            const { dungeonCode, lobbyId, data } = body;
             
             if (!dungeonCode || !data) {
                 return {
@@ -24,9 +24,11 @@ app.http('sync_player_move', {
                 };
             }
 
+            const tagretGroup = lobbyId || dungeonCode; 
+
             const siganlRMessage = {
                 target: 'PlayerMoved',
-                groupName: dungeonCode,
+                groupName: tagretGroup,
                 arguments: [data]
             }
 
