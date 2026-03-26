@@ -7,7 +7,7 @@ interface RegisterRequest {
   uid: string;
   username: string;
   password: string;
-  profileImg?: string;
+  profileImage?: string;
   classe: string;
 }
 
@@ -25,7 +25,7 @@ app.http("register", {
     let body: RegisterRequest;
     body = await req.json() as RegisterRequest;
 
-    const { uid, username, password, profileImg, classe} = body;
+    const { uid, username, password, profileImage, classe} = body;
 
     const passwordHash = crypto
       .createHash("sha256")
@@ -46,7 +46,7 @@ app.http("register", {
       username,
       passwordHash,
       classe,
-      profileImage: profileImg ?? "",
+      profileImage: profileImage || "",
       friends: [],
       dungeons: [],
       inventory: [],

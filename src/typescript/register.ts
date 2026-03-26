@@ -146,11 +146,13 @@ registerBtn.addEventListener("click", async () => {
   if (!isUsernameValid || !isPasswordValid || !isClassValid) return;
   if (selectedClass === null || selectedPreviewId === null) return;
 
+  const AZURE_BASE_URL = "https://stormbyte.blob.core.windows.net/stormbyte-assets/";
+
   const newUser: User = {
     uid: generateUID(),
     username,
     password,
-    profileImage: `/assets/heroes/${selectedPreviewId}.png`,
+    profileImage: `${AZURE_BASE_URL}user/placeholder.png`,
     classe: selectedClass.toString(),
     friends: []
   };

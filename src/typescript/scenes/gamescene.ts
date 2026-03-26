@@ -72,96 +72,101 @@ export default class GameScene extends Phaser.Scene {
   }
 
   async preload() {
+    this.load.setBaseURL("https://stormbyte.blob.core.windows.net/stormbyte-assets/");
     //Object image & spritesheet
-    this.load.image("bg-stone", "assets/dark_wall.png");
-    this.load.image("bag", "assets/user/bags.png");
+    this.load.image("bg-stone", "dark_wall.png");
+    this.load.image("bag", "bags.png");
     const rawDungeon = localStorage.getItem("dungeon")
-
+    
     if(!rawDungeon){
       window.location.href = "homepage.html";
       throw new Error("Dungeon not foung");
     }
-
-    this.load.json("dungeon", rawDungeon);
-    this.load.image("heart", "assets/heart.png"); 
-    this.load.spritesheet("heart_loss", "assets/heart_loss.png", {
+    let dungeonUrl = rawDungeon;
+    if (dungeonUrl.includes("public/assets/")) {
+        dungeonUrl = dungeonUrl.replace("public/assets/", "");
+    }else if (dungeonUrl.includes("assets/")) {
+        dungeonUrl = dungeonUrl.replace("assets/", "");
+    }
+    this.load.json("dungeon", dungeonUrl);
+    this.load.image("heart", "heart.png"); 
+    this.load.spritesheet("heart_loss", "heart_loss.png", {
         frameWidth: 256,
         frameHeight: 217
     });
 
     //Hero spritesheet
     //Knight Spritesheet 
-    this.load.spritesheet("kng", "assets/KnightAnimation/KnightWalk.png", {
+    this.load.spritesheet("kng", "KnightAnimation/KnightWalk.png", {
         frameWidth: 290,
         frameHeight: 309
     });
-    this.load.spritesheet("kngAttack", "assets/KnightAnimation/KnightAttack.png", {
+    this.load.spritesheet("kngAttack", "KnightAnimation/KnightAttack.png", {
         frameWidth: 439,
         frameHeight: 408
     });
-    this.load.spritesheet("KnightDeath", "assets/KnightAnimation/KnightDeath.png", {
+    this.load.spritesheet("KnightDeath", "KnightAnimation/KnightDeath.png", {
         frameWidth: 361,
         frameHeight: 288
     });
   
     //Mage Spritesheet
-    this.load.spritesheet("mg", "assets/MageAnimation/MageWalk.png", {
+    this.load.spritesheet("mg", "MageAnimation/MageWalk.png", {
         frameWidth: 126,
         frameHeight: 260
     });
-    this.load.spritesheet("mgAttack", "assets/MageAnimation/MageAttack.png", {
+    this.load.spritesheet("mgAttack", "MageAnimation/MageAttack.png", {
         frameWidth: 383,
         frameHeight: 321
     });
-    this.load.spritesheet("MageDeath", "assets/MageAnimation/MageDeath.png", {
+    this.load.spritesheet("MageDeath", "MageAnimation/MageDeath.png", {
         frameWidth: 404,
         frameHeight: 285
     });
     
     //Archer Spritesheet
-    this.load.spritesheet("arc", "assets/ArcherAnimation/ArcherWalk.png", {
+    this.load.spritesheet("arc", "ArcherAnimation/ArcherWalk.png", {
         frameWidth: 254,
         frameHeight: 264
     });
-    this.load.spritesheet("arcAttack", "assets/ArcherAnimation/ArcherAttack.png", {
+    this.load.spritesheet("arcAttack", "ArcherAnimation/ArcherAttack.png", {
         frameWidth: 389,
         frameHeight: 378
     });
-    this.load.spritesheet("ArcherDeath", "assets/ArcherAnimation/ArcherDeath.png", {
+    this.load.spritesheet("ArcherDeath", "ArcherAnimation/ArcherDeath.png", {
         frameWidth: 293,
         frameHeight: 284
     });
     
-
     // Traps spritesheet
-    this.load.image("spk_idle", "assets/traps/spike.png");
-    this.load.spritesheet("spk", "assets/TrapAnimation/Spike_Trap.png", {
+    this.load.image("spk_idle", "traps/spike.png");
+    this.load.spritesheet("spk", "TrapAnimation/Spike_Trap.png", {
       frameWidth: 32,
       frameHeight: 32
     });
-    this.load.image("fir_idle", "assets/traps/fire.png");
-    this.load.spritesheet("fir", "assets/TrapAnimation/Fire_Trap.png", {
+    this.load.image("fir_idle", "traps/fire.png");
+    this.load.spritesheet("fir", "TrapAnimation/Fire_Trap.png", {
         frameWidth: 32,
         frameHeight: 41
     });
-    this.load.image("brt_idle", "assets/traps/bearTrap.png");
-    this.load.spritesheet("brt", "assets/TrapAnimation/Bear_Trap.png", {
+    this.load.image("brt_idle", "traps/bearTrap.png");
+    this.load.spritesheet("brt", "TrapAnimation/Bear_Trap.png", {
         frameWidth: 32,
         frameHeight: 32
     });
 
     // Enemis spritesheet
-    this.load.spritesheet("enemy_idle", "assets/enemis/EvilMageIdle.png", {
+    this.load.spritesheet("enemy_idle", "enemis/EvilMageIdle.png", {
         frameWidth: 85,
         frameHeight: 94
     });
 
-    this.load.spritesheet("enemy_alert", "assets/enemis/EvilMageAlert.png", {
+    this.load.spritesheet("enemy_alert", "enemis/EvilMageAlert.png", {
         frameWidth: 122,
         frameHeight: 110
     });
 
-    this.load.spritesheet("enemy_attack", "assets/enemis/EvilMageAttack.png", {
+    this.load.spritesheet("enemy_attack", "enemis/EvilMageAttack.png", {
         frameWidth: 87,
         frameHeight: 110
     });
@@ -185,15 +190,30 @@ export default class GameScene extends Phaser.Scene {
       throw new Error("Dungeon JSON non caricato");
     }
 
+    const getAzureUrl = (path: string) => {
+      if (!path) return "";
+      
+      let cleanPath = path;
+      if (cleanPath.includes("http://localhost:5173/")) {
+          cleanPath = cleanPath.replace("http://localhost:5173/", "");
+      }
+      
+      cleanPath = cleanPath.startsWith("/") ? cleanPath.substring(1) : cleanPath;
+      
+      cleanPath = cleanPath.replace("public/assets/", "").replace("assets/", "");
+      
+      return cleanPath;
+    }
+    //https://stormbyte.blob.core.windows.net/stormbyte-assets/items/rubin.png
     this.dungeon.rooms.forEach(room => {
-      this.load.image(room.id, room.asset);
+      this.load.image(room.id, getAzureUrl(room.asset));
 
       room.enemies.forEach(e =>
-        this.load.image(e.id, e.asset)
+        this.load.image(e.id, getAzureUrl(e.asset))
       );
 
       room.traps.forEach(t =>
-        this.load.image(t.id, t.asset)
+        this.load.image(t.id, getAzureUrl(t.asset))
       );
     });
 

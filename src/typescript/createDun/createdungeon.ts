@@ -98,9 +98,11 @@ export function initDungeonEditor() {
         `[data-id="${data.roomId}"]`
       ) as HTMLElement;
       if (!el) {
+        const AZURE_BASE_URL = "https://stormbyte.blob.core.windows.net/stormbyte-assets/";
+
         const newItem = data.fullItem ?? {
           id: data.roomId,
-          src: data.src ?? "public/assets/rooms/sacrificeroom.png",
+          src: data.src ?? AZURE_BASE_URL + "rooms/sacrificeroom.png",
           type: data.type,
           x: data.x,
           y: data.y,  
@@ -175,17 +177,18 @@ export function initDungeonEditor() {
   }
 
   function renderItems(category: MenuCategory): void {
+    const AZURE_BASE_URL = "https://stormbyte.blob.core.windows.net/stormbyte-assets/";
     const itemsData: Record<MenuCategory, string[]> = {
       rooms: [
-        "public/assets/rooms/sacrificeroom.png",
-        "public/assets/rooms/portal_room.png",
-        "public/assets/rooms/catacomb_room.png"
+        AZURE_BASE_URL + "rooms/sacrificeroom.png",
+        AZURE_BASE_URL + "rooms/portal_room.png",
+        AZURE_BASE_URL + "rooms/catacomb_room.png"
       ],
-      enemies: ["public/assets/enemis/EvilMage.png"],
+      enemies: [AZURE_BASE_URL + "enemis/EvilMage.png"],
       traps: [
-        "public/assets/traps/spike.png",
-        "public/assets/traps/fire.png",
-        "public/assets/traps/bearTrap.png"
+        AZURE_BASE_URL + "traps/spike.png",
+        AZURE_BASE_URL + "traps/fire.png",
+        AZURE_BASE_URL + "traps/bearTrap.png"
       ]
     };
 
@@ -223,7 +226,7 @@ export function initDungeonEditor() {
       const friendsHTML = friendsList.map(friend => `
         <div class="friend-row flex items-center justify-between border rounded-lg p-3">
           <div class="flex items-center">
-            <img src="${friend.profileImage}" alt="Avatar" class="w-12 h-12 rounded-full object-cover mr-4"/>
+            <img src="${friend.profImg}" alt="Avatar" class="w-12 h-12 rounded-full object-cover mr-4"/>
             <div class="flex flex-col">
               <span class="text-white font-semibold text-lg">${friend.username}</span>
               <span class="text-gray-400 text-sm">UID: ${friend.uid}</span>

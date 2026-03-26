@@ -21,11 +21,11 @@ export class DungeonManager {
 
     public spawnRandomItems() {
         const itemAssets = [
-                { key: "potion", asset: "assets/items/potion.png" },
-                { key: "emerald", asset: "assets/items/emerald.png" },
-                { key: "rubin", asset: "assets/items/rubin.png" },
-                { key: "sword", asset: "assets/items/sword.png" },
-                { key: "shield", asset: "assets/items/shield.png" }
+                { key: "potion", asset: "items/potion.png" },
+                { key: "emerald", asset: "items/emerald.png" },
+                { key: "rubin", asset: "items/rubin.png" },
+                { key: "sword", asset: "items/sword.png" },
+                { key: "shield", asset: "items/shield.png" }
             ];
             
             itemAssets.forEach(item => {

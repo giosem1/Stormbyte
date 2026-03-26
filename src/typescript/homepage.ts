@@ -425,12 +425,13 @@ searchF.addEventListener("click", () => {
 });
 
 function showFriendPanel(friend: Friend, user: User) {
+  const AZURE_BASE_URL = "https://stormbyte.blob.core.windows.net/stormbyte-assets/";
   panel.show(`
     <h2 class="panel-title text-lg mb-4">Friend Found</h2>
 
     <div class="flex items-center border rounded-lg p-3 gap-4">
       <img 
-        src="/assets/user/placeholder.png" 
+        src="${AZURE_BASE_URL}user/placeholder.png" 
         alt="${friend.username}"
         class="w-14 h-14 rounded-full"
         draggable="false"
@@ -666,7 +667,7 @@ friends.addEventListener("click", ()=>{
   const friendsHTML = friendsList.map(friend => `
       <div class="friend-row flex items-center justify-between border rounded-lg p-3">
           <div class="flex items-center">
-              <img src="${friend.profileImage}" alt="Avatar" class="w-12 h-12 rounded-full object-cover mr-4"/>
+              <img src="${friend.profImg}" alt="Avatar" class="w-12 h-12 rounded-full object-cover mr-4"/>
               <div class="flex flex-col">
                   <span class="text-white font-semibold text-lg">${friend.username}</span>
                   <span class="text-gray-400 text-sm">UID: ${friend.uid}</span>

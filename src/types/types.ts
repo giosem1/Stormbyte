@@ -1,7 +1,7 @@
 export interface Friend {
   uid: string;
   username: string;
-  profileImage: string;
+  profImg: string;
 }
 export interface User {
     [x: string]: any;
