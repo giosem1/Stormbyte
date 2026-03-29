@@ -131,3 +131,21 @@ export type Lobby = {
   state: DungeonState;
   createdAt: number;
 };
+
+export type StoryEventType = 
+  | "DUNGEON_ENTERED"
+  | "ROOM_ENTERED"
+  | "ITEM_COLLECTED"
+  | "ENEMY_DEFEATED"
+  | "TRAP_TRIGGERED"
+  | "PLAYER_DEATH"
+  | "DUNGEON_CLEARED";
+
+export interface StoryEvent {
+  timestamp: number;
+  type: string;
+  actor: string;
+  actorClass: string;
+  details: string;
+  roomName: string;
+}

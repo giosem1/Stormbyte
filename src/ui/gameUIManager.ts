@@ -20,7 +20,7 @@ export class GameUIManager {
     }
   }
 
-  public triggerWin() {
+  public async triggerWin() {
     this.scene.isGameWon = true;
     if (this.scene.hero && this.scene.hero.active){
       this.scene.hero.stop();
@@ -33,21 +33,75 @@ export class GameUIManager {
     };
 
     const winHtml = `
-        <div class="victory-box">
-            <h2 class="victory-title">DUNGEON CLEARED!</h2>
-            <p class="victory-text">You defeated all enemies<br>and collected all items.</p>
-            <button id="win-exit-btn" class="victory-btn">
-                RETURN TO HOME
-            </button>
+        <div class="victory-box-container">
+            <div class="victory-title-bar">
+                <span class="skull-icon">☠️</span>
+                <h2 class="victory-title">DUNGEON CLEARED!</h2>
+                <span class="skull-icon">☠️</span>
+            </div>
+            
+            <div class="victory-content">
+                <p class="victory-text">You defeated all enemies<br>and collected all items.</p>
+                
+                <div class="scroll-container">
+                    <div class="scroll-top"></div>
+                    <div id="story-container" class="scroll-parchment">
+                        <p class="bard-text">
+                            <span class="loading-bard">📜 The bard is writing the chronicle of your deeds... please wait.</span>
+                        </p>
+                    </div>
+                    <div class="scroll-bottom"></div>
+                </div>
+
+                <div class="btn-container">
+                    <button id="back-to-lobby-btn" class="forge-btn">
+                        <span class="btn-icon">⚔️</span>
+                        <span class="btn-text">BACK TO LOBBY</span>
+                    </button>
+                </div>
+            </div>
         </div>
     `;
     winPanel.show(winHtml);
 
-    const extitBtn = document.getElementById("win-exit-btn");
-    if (extitBtn) {
-      extitBtn.addEventListener("click", () => {
-        window.location.href = "homepage.html";
+    this.scene.time.delayedCall(100, () => {
+      const extitBtn = document.getElementById("back-to-lobby-btn");
+      if (extitBtn) {
+        extitBtn.addEventListener("click", () => {
+          window.location.href = "homepage.html";
+        });
+      }
+    });
+
+    this.scene.stroyManager.logEvent("DUNGEON_CLEARED", `Triumphed over the dungeon, cleansing it of its darkness.`);
+    const promptData = this.scene.stroyManager.generateChroniclePrompt();
+
+    try {
+      const response = await fetch("http://localhost:7071/api/generate_story", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: promptData,
+          dungeonCode: this.scene.dungeonCode
+        })
       });
+
+      const storyElement = document.querySelector(".bard-text");
+
+      if (response.ok) {
+        const data = await response.json();
+        if (storyElement) {
+          storyElement.innerHTML = data.story.replace(/\n/g, "<br>");
+        }
+      } else {
+        throw new Error("Error from OpenAI");
+      }
+      
+    }catch(err){
+      const storyElement = document.querySelector(".bard-text");
+      if (storyElement) {
+        storyElement.innerHTML = "The chronicles of this epic battle have been lost in the mists of time...";
+      }
     }
   }
 
@@ -229,7 +283,7 @@ export class GameUIManager {
       const friendsHTML = friendsList.map(friend => `
           <div class="friend-row flex items-center justify-between border rounded-lg p-3">
               <div class="flex items-center">
-                  <img src="${friend.profileImage}" alt="Avatar" class="w-12 h-12 rounded-full object-cover mr-4"/>
+                  <img src="${friend.profImg}" alt="Avatar" class="w-12 h-12 rounded-full object-cover mr-4"/>
                   <div class="flex flex-col">
                       <span class="text-white font-semibold text-lg">${friend.username}</span>
                       <span class="text-gray-400 text-sm">UID: ${friend.uid}</span>

@@ -270,58 +270,224 @@ button.panel-btn:hover {
     padding: 0;
 }
 
-.victory-box {
-  text-align: center;
-  font-family: 'Press Start 2P', sans-serif;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  border: 4px solid #FFD700;
-  border-radius: 12px;
-  padding: 40px 30px;
-  box-shadow: 0 15px 40px rgba(0,0,0,0.9), inset 0 0 20px rgba(255, 215, 0, 0.15);
-  color: #fff;
-  width: 100%;
-  box-sizing: border-box;
+::-webkit-scrollbar {
+    width: 10px;
 }
+
+::-webkit-scrollbar-track {
+    background: #1a1005;
+    border-radius: 5px;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #8b5a2b 0%, #5c3a21 100%);
+    border-radius: 5px;
+    border: 2px solid #1a1005;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #a06b35 0%, #6d4629 100%);
+}
+
+.victory-box-container {
+    font-family: 'Press Start 2P', cursive;
+    background: linear-gradient(135deg, #2c1a0c, #1a1005);
+    border: 8px ridge #8b5a2b;
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    color: #fce6c9;
+    box-shadow: 0 0 40px rgba(0,0,0,0.9), inset 0 0 20px rgba(0,0,0,0.7);
+    max-width: 650px;
+    width: 95%;
+    margin: 20px auto;
+    position: relative;
+    overflow: hidden;
+}
+
+.victory-title-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    background-color: rgba(0,0,0,0.4);
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.skull-icon {
+    font-size: 1.5rem;
+    filter: drop-shadow(0 0 5px rgba(255,255,255,0.5));
+}
+
 .victory-title {
-  color: #FFD700;
-  font-size: 24px;
-  margin-bottom: 20px;
-  line-height: 1.4;
-  text-shadow: 3px 3px 0px #000, 0 0 15px rgba(255, 215, 0, 0.6);
-  animation: vic-pulse 2s infinite;
+    font-size: 1.6rem;
+    color: #ffd700;
+    text-shadow: 2px 2px 0px #000, 0 0 15px rgba(255, 215, 0, 0.6);
+    margin: 0;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    animation: gold-pulse 2s infinite ease-in-out;
 }
+
+@keyframes gold-pulse {
+    0%, 100% { color: #ffd700; text-shadow: 2px 2px 0px #000, 0 0 15px rgba(255, 215, 0, 0.6); }
+    50% { color: #fff; text-shadow: 2px 2px 0px #000, 0 0 25px rgba(255, 215, 0, 0.9); }
+}
+
+.victory-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
 .victory-text {
-  font-size: 13px;
-  line-height: 1.8;
-  margin-bottom: 35px;
-  color: #d1d1d1;
-  text-shadow: 1px 1px 0px #000;
+    font-size: 0.8rem;
+    color: #e0c090;
+    line-height: 1.6;
+    margin: 0;
 }
-.victory-btn {
-  padding: 15px 30px;
-  background-color: #228B22;
-  color: white;
-  border: 2px solid #32CD32;
-  border-radius: 4px;
-  font-family: 'Press Start 2P', sans-serif;
-  font-size: 14px;
-  cursor: pointer;
-  transition: transform 0.1s, box-shadow 0.1s, background-color 0.2s;
-  box-shadow: 0 6px 0px #006400;
+
+.scroll-container {
+    width: 100%;
+    position: relative;
+    margin: 20px 0;
 }
-.victory-btn:hover {
-  background-color: #32CD32;
-  transform: translateY(2px);
-  box-shadow: 0 4px 0px #006400;
+
+.scroll-top, .scroll-bottom {
+    background: linear-gradient(90deg, #8b5a2b, #cdaa7d 50%, #8b5a2b);
+    height: 15px;
+    border: 2px solid #5c3a21;
+    border-radius: 8px;
+    position: absolute;
+    left: -10px;
+    right: -10px;
+    z-content: 1;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.6);
 }
-.victory-btn:active {
-  transform: translateY(6px);
-  box-shadow: none;
+
+.scroll-top { top: -10px; }
+.scroll-bottom { bottom: -10px; }
+
+.scroll-parchment {
+    background-color: #f4e3c5;
+    background-image: radial-gradient(circle, #f4e3c5 70%, #d8b888 100%);
+    border-left: 3px solid #a88050;
+    border-right: 3px solid #a88050;
+    padding: 30px 20px;
+    box-shadow: inset 0 0 20px rgba(139, 69, 19, 0.5), 0 8px 15px rgba(0,0,0,0.6);
+    min-height: 150px;
+    max-height: 250px; 
+    overflow-y: auto; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-content: 0;
+    position: relative;
 }
-@keyframes vic-pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
+
+.bard-text {
+    color: #3e2723; 
+    font-size: 0.8rem;
+    line-height: 1.8;
+    text-shadow: none;
+}
+
+.loading-bard {
+    animation: breathe 2s infinite ease-in-out;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-style: italic;
+}
+
+@keyframes breathe {
+    0%, 100% { opacity: 0.5; transform: scale(0.98); }
+    50% { opacity: 1; transform: scale(1); }
+}
+
+.btn-container {
+    margin-top: 20px;
+}
+
+.forge-btn {
+    background: linear-gradient(to bottom, #4a4a4a, #2a2a2a);
+    border: 4px solid #cdaa7d; 
+    border-radius: 12px;
+    color: #fce6c9;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 1rem;
+    padding: 15px 40px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 6px 0px rgba(0,0,0,0.8), 0 10px 15px rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-text {
+    text-shadow: 2px 2px 0px #000;
+}
+
+.btn-icon {
+    font-size: 1.2rem;
+    filter: drop-shadow(0 0 3px rgba(255,255,255,0.7));
+}
+
+.btn-gem {
+    width: 15px;
+    height: 15px;
+    background-color: #ff0000; /* Rubino rosso */
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 10px #ff0000, inset 0 0 5px #ffcccc;
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    animation: gem-glow 1.5s infinite ease-in-out;
+}
+
+@keyframes gem-glow {
+    0%, 100% { box-shadow: 0 0 10px #ff0000, inset 0 0 5px #ffcccc; }
+    50% { box-shadow: 0 0 20px #ff0000, inset 0 0 10px #fff; background-color: #ff3333; }
+}
+
+/* Effetti Hover e Active */
+.forge-btn:hover {
+    background: linear-gradient(to bottom, #5a5a5a, #3a3a3a);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 0px rgba(0,0,0,0.8), 0 12px 20px rgba(0,0,0,0.6);
+    color: #fff;
+}
+
+.forge-btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0px rgba(0,0,0,0.8), 0 4px 6px rgba(0,0,0,0.5);
+    background: linear-gradient(to bottom, #3a3a3a, #1a1a1a);
+}
+
+/* Effetto riflesso metallico al passaggio */
+.forge-btn::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+    transform: rotate(45deg);
+    transition: all 0.5s ease;
+}
+
+.forge-btn:hover::after {
+    left: 100%;
+    top: 100%;
 }
 
 .gameover-box {

@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { getSession } from "../../utils/session";
 import { GameUIManager } from "../../ui/gameUIManager";
+import { StoryManager } from "./managers/storyManager";
 import { PlayerManager } from "./managers/playerManager";
 import { DungeonManager } from "./managers/dungeonManager";
 import { NetworkManager } from "./managers/gameNetworkManager";
@@ -13,6 +14,7 @@ export default class GameScene extends Phaser.Scene {
   public dungeonManager!: DungeonManager;
   public playerManager!: PlayerManager;
   public networkManager!: NetworkManager;
+  public stroyManager!: StoryManager;
 
   //Overall state and UI
   public dungeon!: Dungeon;
@@ -82,13 +84,7 @@ export default class GameScene extends Phaser.Scene {
       window.location.href = "homepage.html";
       throw new Error("Dungeon not foung");
     }
-    let dungeonUrl = rawDungeon;
-    if (dungeonUrl.includes("public/assets/")) {
-        dungeonUrl = dungeonUrl.replace("public/assets/", "");
-    }else if (dungeonUrl.includes("assets/")) {
-        dungeonUrl = dungeonUrl.replace("assets/", "");
-    }
-    this.load.json("dungeon", dungeonUrl);
+    this.load.json("dungeon", rawDungeon);
     this.load.image("heart", "heart.png"); 
     this.load.spritesheet("heart_loss", "heart_loss.png", {
         frameWidth: 256,
@@ -177,7 +173,7 @@ export default class GameScene extends Phaser.Scene {
     this.dungeonManager = new DungeonManager(this);
     this.playerManager = new PlayerManager(this);
     this.networkManager = new NetworkManager(this);
-
+    this.stroyManager = new StoryManager(this);
     
     if (!this.anims.exists("walk")) {
       this.createAllAnimations();
@@ -190,21 +186,29 @@ export default class GameScene extends Phaser.Scene {
       throw new Error("Dungeon JSON non caricato");
     }
 
+    const AZURE_BASE_URL = "https://stormbyte.blob.core.windows.net/stormbyte-assets/";
     const getAzureUrl = (path: string) => {
       if (!path) return "";
       
       let cleanPath = path;
+      if (cleanPath.includes(AZURE_BASE_URL)){
+        cleanPath = cleanPath.replace(AZURE_BASE_URL, "");
+      }
+
       if (cleanPath.includes("http://localhost:5173/")) {
           cleanPath = cleanPath.replace("http://localhost:5173/", "");
       }
       
       cleanPath = cleanPath.startsWith("/") ? cleanPath.substring(1) : cleanPath;
       
-      cleanPath = cleanPath.replace("public/assets/", "").replace("assets/", "");
-      
+      if (cleanPath.startsWith("public/assets/")) {
+        cleanPath = cleanPath.substring("public/assets/".length);
+      } else if (cleanPath.startsWith("assets/")) {
+        cleanPath = cleanPath.substring("assets/".length);
+      }
       return cleanPath;
     }
-    //https://stormbyte.blob.core.windows.net/stormbyte-assets/items/rubin.png
+
     this.dungeon.rooms.forEach(room => {
       this.load.image(room.id, getAzureUrl(room.asset));
 
@@ -225,6 +229,7 @@ export default class GameScene extends Phaser.Scene {
       this.dungeonManager.spawnRandomItems();
       
       createHeartAnimations(this.anims);
+      this.stroyManager.logEvent("DUNGEON_ENTERED", `Has entered the dungeon ${this.dungeon.name}`)
     });
     this.load.on('loaderror', (file: any) => {
       console.error("Errore caricamento: ", file.key, file.src);

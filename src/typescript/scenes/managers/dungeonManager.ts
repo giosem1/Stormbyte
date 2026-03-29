@@ -174,7 +174,8 @@ export class DungeonManager {
         if (this.scene.isInventoryOpen) {
             slot.setVisible(true);
         }
-    
+        this.scene.stroyManager.logEvent("ITEM_COLLECTED", `Discovered a precious treasure: ${item.getData("itemKey")}.`);
+
         item.destroy();
         this.scene.uiManager.checkWinCondition()
         this.scene.itemsInScene = this.scene.itemsInScene.filter(i => i !== item);
@@ -204,6 +205,7 @@ export class DungeonManager {
 
         trap.setData("activated", true);
         
+        this.scene.stroyManager.logEvent("TRAP_TRIGGERED", `A fatal misstep! Triggered a hidden trap.`);
         trap.play(config.anim);
         fetch("http://localhost:7071/api/update_game_lobby", {
           method: "POST",
@@ -226,7 +228,7 @@ export class DungeonManager {
     });
   }
 
-  // Enemis
+  // Enemies
   public updateEnemies() {
     this.scene.enemies.forEach(enemy => {
       const hearts = enemy.getData("hearts") as Phaser.GameObjects.Image[];
@@ -330,7 +332,8 @@ export class DungeonManager {
         if (nextRoom) {
             this.scene.isTransitioningRoom = true;
             this.scene.currentRoom = nextRoom;
-    
+
+            this.scene.stroyManager.logEvent("ROOM_ENTERED", `The air grows cold as they delve into a new area of the dungeon.`);
             this.scene.hero.x = Phaser.Math.Clamp(
                 this.scene.hero.x,
                 nextRoom.x + WALL_THICKNESS,

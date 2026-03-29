@@ -13,46 +13,47 @@ export class NetworkManager {
     public async initNetwork() {
         const connection = createConnection(this.scene.user);
         try {
-        await startConnection();      
-        const rawDungeon = localStorage.getItem("dungeon");
-        if (!rawDungeon){
-            throw new Error("Dungeon not found");
-        }
+            await startConnection();      
+            const rawDungeon = localStorage.getItem("dungeon");
+            if (!rawDungeon){
+                throw new Error("Dungeon not found");
+            }
 
-        this.scene.dungeon = JSON.parse(rawDungeon);
-        this.scene.dungeonCode = this.scene.dungeon.code;
+            this.scene.dungeon = JSON.parse(rawDungeon);
+            this.scene.dungeonCode = this.scene.dungeon.code;
 
-        this.scene.isGuest = localStorage.getItem("is_game_guest") === "true";
-    
-        if (this.scene.isGuest) {
+            this.scene.isGuest = localStorage.getItem("is_game_guest") === "true";
+        
+            if (this.scene.isGuest) {
 
-            await fetch("http://localhost:7071/api/join_game", {
-            method: "POST",
-            headers: { "Content-Type": "application/json"},
-            body: JSON.stringify({
-                dungeonCode: this.scene.dungeonCode,
-                userId: this.scene.user.uid,
-                username: this.scene.user.username,
-                class: this.scene.userClass,
-                lobbyId: this.scene.lobbyId
-            })
-            });
-            localStorage.removeItem("is_game_guest");
-            localStorage.removeItem("current_lobby_id");
-        } else {
-            await fetch("http://localhost:7071/api/create_lobby", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                dungeonCode: this.scene.dungeonCode,
-                userId: this.scene.user.uid,
-                lobbyId: this.scene.lobbyId
-            })
-            });
-        }
+                await fetch("http://localhost:7071/api/join_game", {
+                method: "POST",
+                headers: { "Content-Type": "application/json"},
+                body: JSON.stringify({
+                    dungeonCode: this.scene.dungeonCode,
+                    userId: this.scene.user.uid,
+                    username: this.scene.user.username,
+                    class: this.scene.userClass,
+                    lobbyId: this.scene.lobbyId
+                })
+                });
+                localStorage.removeItem("is_game_guest");
+                localStorage.removeItem("current_lobby_id");
+            } else {
+                await fetch("http://localhost:7071/api/create_lobby", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    dungeonCode: this.scene.dungeonCode,
+                    userId: this.scene.user.uid,
+                    lobbyId: this.scene.lobbyId
+                })
+                });
+            }
+            this.scene.stroyManager.logEvent("DUNGEON_ENTERED", "Crossed the threshold of the dungeon, ready to face their destiny.")
         
         }catch(err){
-        console.error("Error during the connection: ", err)
+            console.error("Error during the connection: ", err)
         }
 
         connection.on("PlayerJoinedGame", async (playerData: any) => {
