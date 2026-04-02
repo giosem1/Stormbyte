@@ -9,9 +9,7 @@ export class StoryManager {
         this.scene = scene;
     }
 
-    public logEvent(type: StoryEventType, details: string) {
-        // const currentRoomId = this.scene.currentRoom ? this.scene.currentRoom.id : "Unknowk";
-
+    public logEvent(type: StoryEventType, details: string, actorName?: string, actorClass?: string) {
         let roomName = "Mystery Room";
         if ( this.scene.currentRoom?.asset.includes("loginroom")) roomName = "Login Room";
         if ( this.scene.currentRoom?.asset.includes("catacomb")) roomName = "Catacomb Room";
@@ -20,8 +18,8 @@ export class StoryManager {
         const newEvent: StoryEvent = {
             timestamp: Date.now(),
             type: type,
-            actor: this.scene.user.username,
-            actorClass: this.scene.userClass,
+            actor: actorName || this.scene.user.username,
+            actorClass: actorClass || this.scene.userClass,
             details: details,
             roomName: roomName
         }

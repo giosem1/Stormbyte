@@ -40,13 +40,13 @@ app.http("update_game_lobby", {
                 signalRMessages.push({
                     target: "ItemCollected",
                     groupName: lobbyId,
-                    arguments: [targetId, userId]
+                    arguments: [targetId, userId, username]
                 });
             } else if (actionType === "ENEMY_DAMAGED") {
                 signalRMessages.push({
                     target: "EnemyDamaged",
                     groupName: lobbyId,
-                    arguments: [targetId, userId]
+                    arguments: [targetId, userId, username]
                 });
             } else if (actionType === "PLAYER_DIED") {
                 signalRMessages.push({
@@ -76,6 +76,12 @@ app.http("update_game_lobby", {
                         text: text
                     }]
                 });
+            } else if (actionType === "STORY_GENERATED") {
+                signalRMessages.push({
+                    target: "StoryGenerated",
+                    groupName: lobbyId,
+                    arguments: [ userId, text ]
+                })
             }
 
             context.extraOutputs.set("signalRMessages", signalRMessages);

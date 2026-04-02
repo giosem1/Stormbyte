@@ -290,6 +290,13 @@ button.panel-btn:hover {
     background: linear-gradient(180deg, #a06b35 0%, #6d4629 100%);
 }
 
+#panel-content:has(.victory-box-container) {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
 .victory-box-container {
     font-family: 'Press Start 2P', cursive;
     background: linear-gradient(135deg, #2c1a0c, #1a1005);
@@ -365,7 +372,6 @@ button.panel-btn:hover {
     position: absolute;
     left: -10px;
     right: -10px;
-    z-content: 1;
     box-shadow: 0 4px 8px rgba(0,0,0,0.6);
 }
 
@@ -377,23 +383,35 @@ button.panel-btn:hover {
     background-image: radial-gradient(circle, #f4e3c5 70%, #d8b888 100%);
     border-left: 3px solid #a88050;
     border-right: 3px solid #a88050;
-    padding: 30px 20px;
+    padding: 20px;
     box-shadow: inset 0 0 20px rgba(139, 69, 19, 0.5), 0 8px 15px rgba(0,0,0,0.6);
     min-height: 150px;
-    max-height: 250px; 
+    max-height: 300px; 
     overflow-y: auto; 
-    display: flex;
+    display: block;
     align-items: center;
     justify-content: center;
-    z-content: 0;
     position: relative;
 }
 
 .bard-text {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    text-align: left;
+    margin: 0;
+    display: block;
+    overflow-y: auto;
     color: #3e2723; 
     font-size: 0.8rem;
     line-height: 1.8;
     text-shadow: none;
+    max-width: 100%;
+
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.bard-text::-webkit-scrollbar {
+  display: none;
 }
 
 .loading-bard {

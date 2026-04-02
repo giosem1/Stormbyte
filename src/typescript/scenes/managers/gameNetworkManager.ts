@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import GameScene from "../gamescene";
-import { createConnection, startConnection, onChatMessage } from "../../../utils/signalrClient";
 import { TRAP_CONFIG } from "../../../types/types";
+import { createConnection, startConnection, onChatMessage } from "../../../utils/signalrClient";
 
 export class NetworkManager {
     private scene: GameScene;
@@ -146,8 +146,11 @@ export class NetworkManager {
         }
         });
 
-        connection.on("ItemCollected", (itemId: string, senderId: string) => {
+        connection.on("ItemCollected", (itemId: string, senderId: string, username: string) => {
         if (senderId === this.scene.user.uid) return;
+        if (!this.scene.isGuest) {
+            this.scene.stroyManager.logEvent("ITEM_COLLECTED", `Collected item ${itemId}`, username);
+        }
 
         const itemToDestroy = this.scene.itemsInScene.find(i => i.getData("itemId") === itemId);
         if (itemToDestroy) {
@@ -204,6 +207,13 @@ export class NetworkManager {
             enemy.setData("state", newState);
             enemy.play(`enemy_${newState}`, true);
         }
+        });
+
+        connection.on("StoryGenerated", (_userId: string, text: string) => {
+            const storyElement = document.querySelector(".bard-text");
+            if (storyElement && text) {
+                storyElement.innerHTML = text.replace(/\n/g, "<br>");
+            }
         });
 
         this.setupChat()
@@ -396,5 +406,20 @@ export class NetworkManager {
         }
         });
 
+    }
+
+    public broadcastStory(storyText: string){
+        fetch("http://localhost:7071/api/update_game_lobby", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                dungeonCode: this.scene.dungeonCode,
+                lobbyId: this.scene.lobbyId,
+                userId: this.scene.user.uid,
+                actionType: "STORY_GENERATED",
+                targetId: "story",  
+                text: storyText
+            })
+        }).catch(err => console.error("Error during the send of story: ", err));
     }
 }

@@ -138,7 +138,8 @@ export class PlayerManager {
             lobbyId: this.scene.lobbyId,
             userId: this.scene.user.uid,
             actionType: "ENEMY_DAMAGED",
-            targetId: enemyId
+            targetId: enemyId,
+            username: this.scene.user.username
           })
         }).catch(err => console.error(err));
     
@@ -171,7 +172,7 @@ export class PlayerManager {
           enemy.destroy();
           this.scene.enemies = this.scene.enemies.filter(e => e !== enemy);
           
-          this.scene.stroyManager.logEvent("ENEMY_DEFEATED", `Delivered a lethal blow, felling a dark creature.`);
+          this.scene.stroyManager.logEvent("ENEMY_DEFEATED", `Delivered a lethal blow, felling a dark creature.`, this.scene.user.username);
           this.scene.uiManager.checkWinCondition();
         }
       }
@@ -300,7 +301,7 @@ export class PlayerManager {
         if (this.scene.isDead) return;
         this.scene.isDead = true;
         
-        this.scene.stroyManager.logEvent("PLAYER_DEATH", `Fell heroically in battle, succumbing to the dungeon's perils.`);
+        this.scene.stroyManager.logEvent("PLAYER_DEATH", `Fell heroically in battle, succumbing to the dungeon's perils.`, this.scene.user.username);
         if (this.scene.hero.body) {
           (this.scene.hero.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
         }

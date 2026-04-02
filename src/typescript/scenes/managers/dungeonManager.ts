@@ -163,7 +163,8 @@ export class DungeonManager {
             lobbyId: this.scene.lobbyId,
             userId: this.scene.user.uid,
             actionType: "ITEM_COLLECTED",
-            targetId: itemId
+            targetId: itemId,
+            username: this.scene.user.username
           })
         }).catch(err => console.error(err));
         const slot = this.scene.inventorySlots[slotIndex];
@@ -174,7 +175,7 @@ export class DungeonManager {
         if (this.scene.isInventoryOpen) {
             slot.setVisible(true);
         }
-        this.scene.stroyManager.logEvent("ITEM_COLLECTED", `Discovered a precious treasure: ${item.getData("itemKey")}.`);
+        this.scene.stroyManager.logEvent("ITEM_COLLECTED", `Discovered a precious treasure: ${item.getData("itemKey")}.`, this.scene.user.username);
 
         item.destroy();
         this.scene.uiManager.checkWinCondition()
@@ -205,7 +206,7 @@ export class DungeonManager {
 
         trap.setData("activated", true);
         
-        this.scene.stroyManager.logEvent("TRAP_TRIGGERED", `A fatal misstep! Triggered a hidden trap.`);
+        this.scene.stroyManager.logEvent("TRAP_TRIGGERED", `A fatal misstep! Triggered a hidden trap.`, this.scene.user.username);
         trap.play(config.anim);
         fetch("http://localhost:7071/api/update_game_lobby", {
           method: "POST",
@@ -333,7 +334,7 @@ export class DungeonManager {
             this.scene.isTransitioningRoom = true;
             this.scene.currentRoom = nextRoom;
 
-            this.scene.stroyManager.logEvent("ROOM_ENTERED", `The air grows cold as they delve into a new area of the dungeon.`);
+            this.scene.stroyManager.logEvent("ROOM_ENTERED", `The air grows cold as they delve into a new area of the dungeon.`, this.scene.user.username);
             this.scene.hero.x = Phaser.Math.Clamp(
                 this.scene.hero.x,
                 nextRoom.x + WALL_THICKNESS,

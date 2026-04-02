@@ -73,36 +73,49 @@ export class GameUIManager {
       }
     });
 
-    this.scene.stroyManager.logEvent("DUNGEON_CLEARED", `Triumphed over the dungeon, cleansing it of its darkness.`);
-    const promptData = this.scene.stroyManager.generateChroniclePrompt();
-
-    try {
-      const response = await fetch("http://localhost:7071/api/generate_story", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: promptData,
-          dungeonCode: this.scene.dungeonCode
-        })
-      });
-
+    this.scene.stroyManager.logEvent("DUNGEON_CLEARED", `Triumphed over the dungeon, cleansing it of its darkness.`, this.scene.user.username);
+    
+    const updateStory = (storyText: string) => {
       const storyElement = document.querySelector(".bard-text");
+      if(storyElement) {
+        storyElement.innerHTML = storyText.replace(/\n/g, "<br>");
+      }
+    };
+    if (!this.scene.isGuest) {
+      const promptData = this.scene.stroyManager.generateChroniclePrompt();
+      try {
+        const response = await fetch("http://localhost:7071/api/generate_story", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: promptData,
+            dungeonCode: this.scene.dungeonCode
+          })
+        });
+  
+        if (response.ok) {
+          const data = await response.json();
+          const finalStory = data.story;
 
-      if (response.ok) {
-        const data = await response.json();
-        if (storyElement) {
-          storyElement.innerHTML = data.story.replace(/\n/g, "<br>");
+          updateStory(finalStory);
+
+          if(this.scene.networkManager && this.scene.networkManager.broadcastStory) {
+            this.scene.networkManager.broadcastStory(finalStory);
+          }
+    
+        } else {
+          throw new Error("Error from OpenAI");
         }
-      } else {
-        throw new Error("Error from OpenAI");
+        
+      }catch(err){
+        const storyElement = document.querySelector(".bard-text");
+        if (storyElement) {
+          storyElement.innerHTML = "The chronicles of this epic battle have been lost in the mists of time...";
+        }
       }
-      
-    }catch(err){
-      const storyElement = document.querySelector(".bard-text");
-      if (storyElement) {
-        storyElement.innerHTML = "The chronicles of this epic battle have been lost in the mists of time...";
-      }
+
     }
+
   }
 
   
