@@ -25,7 +25,6 @@ export class NetworkManager {
             this.scene.isGuest = localStorage.getItem("is_game_guest") === "true";
         
             if (this.scene.isGuest) {
-
                 await fetch("http://localhost:7071/api/join_game", {
                 method: "POST",
                 headers: { "Content-Type": "application/json"},
@@ -57,156 +56,166 @@ export class NetworkManager {
         }
 
         connection.on("PlayerJoinedGame", async (playerData: any) => {
-        if (playerData.uid !== this.scene.user.uid) {
+            if (playerData.uid !== this.scene.user.uid) {
 
-            const startRoom = this.scene.dungeon.rooms.find((r: any) => r.asset.includes("loginroom"));
-            const startX = startRoom ? startRoom.x + startRoom.width / 2 : 0;
-            const startY = startRoom ? startRoom.y + startRoom.height / 2 : 0;
+                const startRoom = this.scene.dungeon.rooms.find((r: any) => r.asset.includes("loginroom"));
+                const startX = startRoom ? startRoom.x + startRoom.width / 2 : 0;
+                const startY = startRoom ? startRoom.y + startRoom.height / 2 : 0;
 
-            this.spawnOtherPlayer(playerData, startX, startY);
+                this.spawnOtherPlayer(playerData, startX, startY);
+                const remotePlayer = this.scene.otherPlayers.get(playerData.uid);
 
-            if (!this.scene.isGuest && this.scene.hero) {
-            try {
-                await fetch("http://localhost:7071/api/sync_player_move", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    dungeonCode: this.scene.dungeonCode,
-                    lobbyId: this.scene.lobbyId,
-                    data: {
-                    userId: this.scene.user.uid,
-                    x: this.scene.hero.x,
-                    y: this.scene.hero.y,
-                    anim: this.scene.hero.anims.currentAnim?.key || "",
-                    flipX: this.scene.hero.flipX,
-                    class: this.scene.userClass
+                if (remotePlayer && playerData.username) {
+                    const label = this.scene.playerManager.createPlayerLabel(startX, startY, playerData.username);
+                    remotePlayer.setData("label", label);
+                }
+                if (!this.scene.isGuest && this.scene.hero) {
+                    try {
+                        await fetch("http://localhost:7071/api/sync_player_move", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            dungeonCode: this.scene.dungeonCode,
+                            lobbyId: this.scene.lobbyId,
+                            data: {
+                                userId: this.scene.user.uid,
+                                username: this.scene.user.username,
+                                x: this.scene.hero.x,
+                                y: this.scene.hero.y,
+                                anim: this.scene.hero.anims.currentAnim?.key || "",
+                                flipX: this.scene.hero.flipX,
+                                class: this.scene.userClass
+                            }
+                        })
+                        });
+                    } catch (err){
+                        console.error(err)
                     }
-                })
-                });
-            }catch (err){
-                console.error(err)
+                }
             }
-            }
-        }
         });
 
         connection.on("PlayerMoved", (data: any) => {
-        if (data.userId === this.scene.user.uid) return;
+            if (data.userId === this.scene.user.uid) return;
 
-        let otherHero = this.scene.otherPlayers.get(data.userId);
-        
-        if (otherHero && otherHero.getData("isDead")) return;
+            let otherHero = this.scene.otherPlayers.get(data.userId);
+            
+            if (otherHero && otherHero.getData("isDead")) return;
 
-        if (!otherHero) {
-            this.spawnOtherPlayer({ 
-            uid: data.userId, 
-            username: data.username,
-            class: data.class || "Knight" 
-            }, data.x, data.y);
-            otherHero = this.scene.otherPlayers.get(data.userId)!;
-        }
-        otherHero.x = data.x;
-        otherHero.y = data.y;
-        const otherSprite = otherHero.getData("sprite");
+            if (!otherHero) {
+                this.spawnOtherPlayer({ 
+                uid: data.userId, 
+                username: data.username,
+                class: data.class || "Knight" 
+                }, data.x, data.y);
+                otherHero = this.scene.otherPlayers.get(data.userId)!;
 
-        if (!otherSprite) return;
+                if (otherHero && data.username) {
+                    const label = this.scene.playerManager.createPlayerLabel(data.x, data.y, data.username);
+                    otherHero.setData("label", label);
+                }
+            }
+            otherHero.x = data.x;
+            otherHero.y = data.y;
+            const otherSprite = otherHero.getData("sprite");
 
-        otherSprite.setFlipX(data.flipX)
+            if (!otherSprite) return;
 
-        if (data.anim && data.anim !== ""){
-            otherSprite.play(data.anim, true);
-        } else {
-            otherSprite.stop();
+            otherSprite.setFlipX(data.flipX)
 
-            const pClass = data.class || "Knight";
-            let idleTexture = "KnightDeath";
+            if (data.anim && data.anim !== ""){
+                otherSprite.play(data.anim, true);
+            } else {
+                otherSprite.stop();
 
-            if (pClass.toLowerCase() === "mage" ) idleTexture = "MageDeath";
-            if (pClass.toLowerCase() === "archer" ) idleTexture = "ArcherDeath";
+                const pClass = data.class || "Knight";
+                let idleTexture = "KnightDeath";
 
-            otherSprite.setTexture(idleTexture, 0);
-        }
+                if (pClass.toLowerCase() === "mage" ) idleTexture = "MageDeath";
+                if (pClass.toLowerCase() === "archer" ) idleTexture = "ArcherDeath";
+
+                otherSprite.setTexture(idleTexture, 0);
+            }
         });
 
         connection.on("PlayerLeftGame", (uid: string) => {
-        const otherPlayer = this.scene.otherPlayers.get(uid);
+            const otherPlayer = this.scene.otherPlayers.get(uid);
 
-        if (otherPlayer) {
-            otherPlayer.destroy();
-            this.scene.otherPlayers.delete(uid);
-        }
+            if (otherPlayer) {
+                otherPlayer.destroy();
+                this.scene.otherPlayers.delete(uid);
+            }
         });
 
         connection.on("EnemyDamaged", (enemyId: string, senderId: string) => {
-        if (senderId === this.scene.user.uid) return;
+            if (senderId === this.scene.user.uid) return;
 
-        const enemy = this.scene.enemies.find(e => e.getData("enemyId") === enemyId);
-        if (enemy) {
-            this.scene.playerManager.applyEnemyDamageVisual(enemy);
-        }
+            const enemy = this.scene.enemies.find(e => e.getData("enemyId") === enemyId);
+            if (enemy) {
+                this.scene.playerManager.applyEnemyDamageVisual(enemy);
+            }
         });
 
         connection.on("ItemCollected", (itemId: string, senderId: string, username: string) => {
-        if (senderId === this.scene.user.uid) return;
-        if (!this.scene.isGuest) {
-            this.scene.stroyManager.logEvent("ITEM_COLLECTED", `Collected item ${itemId}`, username);
-        }
+            if (senderId === this.scene.user.uid) return;
+            if (!this.scene.isGuest) {
+                this.scene.stroyManager.logEvent("ITEM_COLLECTED", `Collected item ${itemId}`, username);
+            }
 
-        const itemToDestroy = this.scene.itemsInScene.find(i => i.getData("itemId") === itemId);
-        if (itemToDestroy) {
-            itemToDestroy.destroy();
-            this.scene.itemsInScene = this.scene.itemsInScene.filter(i => i !== itemToDestroy);
-            this.scene.uiManager.checkWinCondition();
-        }
+            const itemToDestroy = this.scene.itemsInScene.find(i => i.getData("itemId") === itemId);
+            if (itemToDestroy) {
+                itemToDestroy.destroy();
+                this.scene.itemsInScene = this.scene.itemsInScene.filter(i => i !== itemToDestroy);
+                this.scene.uiManager.checkWinCondition();
+            }
         });
 
         connection.on("PlayerDied", (classType: string, senderId: string) => {
-        if (senderId === this.scene.user.uid) return;
+            if (senderId === this.scene.user.uid) return;
 
-        const deadPlayerContainer = this.scene.otherPlayers.get(senderId);
-        if (deadPlayerContainer) {
-            deadPlayerContainer.setData("isDead", true);
-            if (deadPlayerContainer.body) {
-            (deadPlayerContainer.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
-            }
-            const realSprite = deadPlayerContainer.getData("sprite");
-            if (realSprite) {
-            realSprite.stop();
-            realSprite.play("death" + classType, true);
-            }
+            const deadPlayerContainer = this.scene.otherPlayers.get(senderId);
+            if (deadPlayerContainer) {
+                deadPlayerContainer.setData("isDead", true);
+                if (deadPlayerContainer.body) {
+                    (deadPlayerContainer.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
+                }
+                const realSprite = deadPlayerContainer.getData("sprite");
+                if (realSprite) {
+                    realSprite.stop();
+                    realSprite.play("death" + classType, true);
+                }
 
-        }
+            }
         });
 
         connection.on("TrapActivated", (trapId: string, senderId: string) => {
-        if (senderId === this.scene.user.uid) return;
+            if (senderId === this.scene.user.uid) return;
 
-        const trap = this.scene.traps.find(t => t.getData("trapId") === trapId);
-        if (trap && !trap.getData("activated")) {
-            const name = trap.getData("trapName") as keyof typeof TRAP_CONFIG;
-            const config = TRAP_CONFIG[name];
+            const trap = this.scene.traps.find(t => t.getData("trapId") === trapId);
+            if (trap && !trap.getData("activated")) {
+                const name = trap.getData("trapName") as keyof typeof TRAP_CONFIG;
+                const config = TRAP_CONFIG[name];
 
-            trap.setData("activated", true);
-            trap.play(config.anim);
+                trap.setData("activated", true);
+                trap.play(config.anim);
 
-            trap.once("animationcomplete", () => {
-            trap.setTexture(config.idle);
-            trap.setData("activated", false);
-            });
-        }
-
+                trap.once("animationcomplete", () => {
+                    trap.setTexture(config.idle);
+                    trap.setData("activated", false);
+                });
+            }
         });
 
         connection.on("EnemyStateChanged", (payload: string, senderId: string) => {
-        if (senderId === this.scene.user.uid) return;
+            if (senderId === this.scene.user.uid) return;
 
-        const [enemyId, newState] = payload.split("::");
-        const enemy = this.scene.enemies.find(e => e.getData("enemyId") === enemyId);
+            const [enemyId, newState] = payload.split("::");
+            const enemy = this.scene.enemies.find(e => e.getData("enemyId") === enemyId);
 
-        if (enemy) {
-            enemy.setData("state", newState);
-            enemy.play(`enemy_${newState}`, true);
-        }
+            if (enemy) {
+                enemy.setData("state", newState);
+                enemy.play(`enemy_${newState}`, true);
+            }
         });
 
         connection.on("StoryGenerated", (_userId: string, text: string) => {
@@ -232,18 +241,10 @@ export class NetworkManager {
         const frame = this.scene.textures.get(spriteKey).get("0");
         
         if (frame) {
-        otherSprite.setScale(this.scene.HERO_TARGET_HEIGHT / frame.height);
+            otherSprite.setScale(this.scene.HERO_TARGET_HEIGHT / frame.height);
         }
 
-        const nameTag = this.scene.add.text(0, - this.scene.HERO_TARGET_HEIGHT - 10, playerData.username, {
-        fontFamily: '"Press Start 2P"',
-        fontSize: "12px",
-        color: "#facc15",
-        stroke: "#000000",
-        strokeThickness: 3
-        }).setOrigin(0.5);
-
-        const playerContainer = this.scene.add.container(startX, startY, [otherSprite, nameTag]);
+        const playerContainer = this.scene.add.container(startX, startY, [otherSprite]);
         playerContainer.setDepth(10);
 
         playerContainer.setData("sprite", otherSprite);
@@ -292,15 +293,15 @@ export class NetworkManager {
     }
     public broadcastEnemyState(enemyId: string, newState: string){
         fetch("http://localhost:7071/api/update_game_lobby", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            dungeonCode: this.scene.dungeonCode,
-            lobbyId: this.scene.lobbyId,
-            userId: this.scene.user.uid,
-            actionType: "ENEMY_STATE_CHANGED",
-            targetId: `${enemyId}::${newState}`
-        })
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                dungeonCode: this.scene.dungeonCode,
+                lobbyId: this.scene.lobbyId,
+                userId: this.scene.user.uid,
+                actionType: "ENEMY_STATE_CHANGED",
+                targetId: `${enemyId}::${newState}`
+            })
         }).catch(err => console.error(err));
     }
 
@@ -319,25 +320,25 @@ export class NetworkManager {
         let unreadCount = 0;
 
         const sendMessage = () => {
-        const text = messageInput.value.trim();
-        if (!text) return;
-        
-        fetch("http://localhost:7071/api/update_game_lobby", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-            dungeonCode: this.scene.dungeonCode,
-            lobbyId: this.scene.lobbyId,
-            userId: this.scene.user.uid,
-            actionType: "CHAT_MESSAGE",
-            targetId: "chat",
-            username: this.scene.user.username,
-            text: text
-            })
-        }).catch(err => console.error(err));
-        
-        messageInput.value = "";
-        messageInput.blur();
+            const text = messageInput.value.trim();
+            if (!text) return;
+            
+            fetch("http://localhost:7071/api/update_game_lobby", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                dungeonCode: this.scene.dungeonCode,
+                lobbyId: this.scene.lobbyId,
+                userId: this.scene.user.uid,
+                actionType: "CHAT_MESSAGE",
+                targetId: "chat",
+                username: this.scene.user.username,
+                text: text
+                })
+            }).catch(err => console.error(err));
+            
+            messageInput.value = "";
+            messageInput.blur();
         };
         
         sendBtn.addEventListener("click", sendMessage);
@@ -350,8 +351,8 @@ export class NetworkManager {
 
             unreadCount = 0;
             if(chatBadge) {
-            chatBadge.classList.add("hidden");
-            chatBadge.innerText = "0";
+                chatBadge.classList.add("hidden");
+                chatBadge.innerText = "0";
             }
         } else {
             messageInput.blur();
@@ -371,39 +372,39 @@ export class NetworkManager {
         messageInput.addEventListener("keypress", (e) => e.stopPropagation());
 
         messageInput.addEventListener("focus", () => { 
-        if (this.scene.input.keyboard) {
-            this.scene.input.keyboard.resetKeys();
-            this.scene.input.keyboard!.enabled = false;
-            this.scene.input.keyboard.clearCaptures();
-        }
+            if (this.scene.input.keyboard) {
+                this.scene.input.keyboard.resetKeys();
+                this.scene.input.keyboard!.enabled = false;
+                this.scene.input.keyboard.clearCaptures();
+            }
         });
         messageInput.addEventListener("blur", () => { 
-        if (this.scene.input.keyboard) {
-            this.scene.input.keyboard.enabled = true; 
+            if (this.scene.input.keyboard) {
+                this.scene.input.keyboard.enabled = true; 
 
-            this.scene.input.keyboard.addCapture('W,A,S,D,E,SPACE');
-        }  
+                this.scene.input.keyboard.addCapture('W,A,S,D,E,SPACE');
+            }  
         });
 
         onChatMessage((data: any) => {
-        const msgElement = document.createElement("p");
-        const sender = data.username || "Unknow";
-        const texMsg = data.text || "";
-        
-        msgElement.innerHTML = `<strong>${sender}:</strong> ${texMsg}`;
+            const msgElement = document.createElement("p");
+            const sender = data.username || "Unknow";
+            const texMsg = data.text || "";
+            
+            msgElement.innerHTML = `<strong>${sender}:</strong> ${texMsg}`;
 
-        msgElement.style.margin = "5px 0";
-        messagesContainer.appendChild(msgElement);
+            msgElement.style.margin = "5px 0";
+            messagesContainer.appendChild(msgElement);
 
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        
-        if (chatBox.classList.contains("hidden") && sender !== this.scene.user.username) {
-            unreadCount++;
-            if (chatBadge) {
-            chatBadge.innerText = unreadCount > 99 ? "99+" : unreadCount.toString();
-            chatBadge.classList.remove("hidden");
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            if (chatBox.classList.contains("hidden") && sender !== this.scene.user.username) {
+                unreadCount++;
+                if (chatBadge) {
+                    chatBadge.innerText = unreadCount > 99 ? "99+" : unreadCount.toString();
+                    chatBadge.classList.remove("hidden");
+                }
             }
-        }
         });
 
     }

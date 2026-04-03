@@ -149,37 +149,89 @@ export class DungeonManager {
 
     //Collect Item
     private collectItem(item: Phaser.GameObjects.Image) {
-        const slotIndex = this.scene.inventorySlots.findIndex(s => !s.getData("filled"));
-        if (slotIndex === -1) {
+      const itemKey = item.getData("itemKey");
+      const itemId = item.getData("itemId");
+
+
+      const existingSlotItem = this.scene.inventorySlots.findIndex(s => s.getData("filled") && s.getData("itemKey") === itemKey);
+      let targetSlot: Phaser.GameObjects.Image;
+      
+      if (existingSlotItem !== -1){
+        targetSlot = this.scene.inventorySlots[existingSlotItem];
+        let currentCount = targetSlot.getData("count") || 1;
+        currentCount++;
+        targetSlot.setData("count", currentCount);
+
+        let countText = targetSlot.getData("countText") as Phaser.GameObjects.Text;
+        if(countText){
+          countText.setText(`x${currentCount}`);
+          if (this.scene.isInventoryOpen) countText.setVisible(true);
+        }
+        if (!countText) {
+          countText = this.scene.add.text(targetSlot.x + 8, targetSlot.y +8, `x${currentCount}`, {
+            fontSize: '14px',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 3
+          });
+          countText.setDepth(200);
+          this.scene.inventoryPanel!.add(countText);
+          targetSlot.setData("countText", countText);
+        } else {
+          countText.setText(`x${currentCount}`);
+        }
+
+        if (this.scene.isInventoryOpen) {
+          countText.setVisible(true);
+        }
+      } else {
+        const emptySlotIndex = this.scene.inventorySlots.findIndex(s => !s.getData("filled"));
+        if (emptySlotIndex === -1) {
             return;
         }
-        const itemId = item.getData("itemId");
-    
-        fetch("http://localhost:7071/api/update_game_lobby", {
-          method:"POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            dungeonCode: this.scene.dungeonCode,
-            lobbyId: this.scene.lobbyId,
-            userId: this.scene.user.uid,
-            actionType: "ITEM_COLLECTED",
-            targetId: itemId,
-            username: this.scene.user.username
-          })
-        }).catch(err => console.error(err));
-        const slot = this.scene.inventorySlots[slotIndex];
-        slot.setTexture(item.getData("itemKey"));
-        slot.setData("filled", true);
-        slot.setData("itemKey", item.getData("itemKey"));
-    
+        const targetSlot = this.scene.inventorySlots[emptySlotIndex];
+        targetSlot.setTexture(item.getData("itemKey"));
+        targetSlot.setData("filled", true);
+        targetSlot.setData("itemKey", item.getData("itemKey"));
+        targetSlot.setData("count", 1);
+        let  countText = this.scene.add.text(targetSlot.x + 8, targetSlot.y +8, `x1`, {
+            fontSize: '14px',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 3
+          });
+        countText.setDepth(200);
+        this.scene.inventoryPanel!.add(countText);
+        targetSlot.setData("countText", countText);
+        
         if (this.scene.isInventoryOpen) {
-            slot.setVisible(true);
+            targetSlot.setVisible(true);
+            countText.setVisible(true);
+        } else {
+          targetSlot.setVisible(false);
+          countText.setVisible(false);
         }
-        this.scene.stroyManager.logEvent("ITEM_COLLECTED", `Discovered a precious treasure: ${item.getData("itemKey")}.`, this.scene.user.username);
 
-        item.destroy();
-        this.scene.uiManager.checkWinCondition()
-        this.scene.itemsInScene = this.scene.itemsInScene.filter(i => i !== item);
+      }
+  
+      fetch("http://localhost:7071/api/update_game_lobby", {
+        method:"POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dungeonCode: this.scene.dungeonCode,
+          lobbyId: this.scene.lobbyId,
+          userId: this.scene.user.uid,
+          actionType: "ITEM_COLLECTED",
+          targetId: itemId,
+          username: this.scene.user.username
+        })
+      }).catch(err => console.error(err));
+  
+      this.scene.stroyManager.logEvent("ITEM_COLLECTED", `Discovered a precious treasure: ${item.getData("itemKey")}.`, this.scene.user.username);
+
+      item.destroy();
+      this.scene.uiManager.checkWinCondition()
+      this.scene.itemsInScene = this.scene.itemsInScene.filter(i => i !== item);
     }
 
     // Traps

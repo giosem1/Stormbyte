@@ -28,16 +28,19 @@ export class GameUIManager {
     }
 
     const winPanel = new GenericPanel("generic-panel", "panel-content", "overlay");
-    winPanel.hide = () => {
 
-    };
+    const panelContent = document.getElementById("panel-content");
+    if (panelContent) {
+      panelContent.style.backgroundColor = "transparent";
+      panelContent.style.border = "none";
+      panelContent.style.boxShadow = "none";
+    }
 
+    winPanel.hide = () => {};
     const winHtml = `
         <div class="victory-box-container">
             <div class="victory-title-bar">
-                <span class="skull-icon">☠️</span>
                 <h2 class="victory-title">DUNGEON CLEARED!</h2>
-                <span class="skull-icon">☠️</span>
             </div>
             
             <div class="victory-content">
@@ -55,7 +58,6 @@ export class GameUIManager {
 
                 <div class="btn-container">
                     <button id="back-to-lobby-btn" class="forge-btn">
-                        <span class="btn-icon">⚔️</span>
                         <span class="btn-text">BACK TO LOBBY</span>
                     </button>
                 </div>
@@ -117,7 +119,6 @@ export class GameUIManager {
     }
 
   }
-
   
   public createUI() {
       const { width, height } = this.scene.scale;
@@ -127,33 +128,31 @@ export class GameUIManager {
       const heartSpacing = 4; 
       const heartSize = 32; 
   
-      this.scene.load.once("complete", () => {
-          const healthContainer = this.scene.add.container(width / 2, 50);
-          healthContainer.setScrollFactor(0);
-          healthContainer.setDepth(100);
-  
-          const hearts: Phaser.GameObjects.Image[] = [];
-  
-          for (let i = 0; i < maxHealth; i++) {
-              const heart = this.scene.add.image(-((maxHealth - 1) * (heartSize + heartSpacing)) / 2 + i * (heartSize + heartSpacing), 0, "heart");
-              heart.setOrigin(0, 0);
-              heart.setDisplaySize(heartSize, heartSize);
-              healthContainer.add(heart);
-              hearts.push(heart);
-          }
-  
-          if (this.scene.dungeon && this.scene.dungeon.name) {
-              const dungeonNameText = this.scene.add.text(0, -heartSize, this.scene.dungeon.name, {
-                  fontFamily: '"Press Start 2P"',
-                  fontSize: '20px',
-                  color: '#ffffff'
-              }).setOrigin(0.40, 0);
-              healthContainer.add(dungeonNameText);
-          }
-  
-          this.scene.data.set("hearts", hearts);
-          this.scene.data.set("maxHealth", maxHealth);
-      });
+      const healthContainer = this.scene.add.container(width / 2, 50);
+      healthContainer.setScrollFactor(0);
+      healthContainer.setDepth(100);
+
+      const hearts: Phaser.GameObjects.Image[] = [];
+
+      for (let i = 0; i < maxHealth; i++) {
+          const heart = this.scene.add.image(-((maxHealth - 1) * (heartSize + heartSpacing)) / 2 + i * (heartSize + heartSpacing), 0, "heart");
+          heart.setOrigin(0, 0);
+          heart.setDisplaySize(heartSize, heartSize);
+          healthContainer.add(heart);
+          hearts.push(heart);
+      }
+
+      if (this.scene.dungeon && this.scene.dungeon.name) {
+          const dungeonNameText = this.scene.add.text(0, -heartSize, this.scene.dungeon.name, {
+              fontFamily: '"Press Start 2P"',
+              fontSize: '20px',
+              color: '#ffffff'
+          }).setOrigin(0.40, 0);
+          healthContainer.add(dungeonNameText);
+      }
+
+      this.scene.data.set("hearts", hearts);
+      this.scene.data.set("maxHealth", maxHealth);
   
       // Inventory Container
       const slotSize = 64;
@@ -177,7 +176,22 @@ export class GameUIManager {
               slotItem.setOrigin(0.5, 0.5);
               slotItem.setVisible(false);
               slotItem.setData("filled", false);
+
+              slotItem.setData("count", 0);
               this.scene.inventoryPanel.add(slotItem);
+
+              const countText = this.scene.add.text(x + 16, y +16, "", {
+                fontFamily: '"Press Start 2P"',
+                fontSize: '12px',
+                color: '#ffffff',
+                stroke: '#000000',
+                strokeThickness: 3
+              });
+              countText.setOrigin(0.5, 0.5);
+              countText.setVisible(false);
+              this.scene.inventoryPanel.add(countText);
+
+              slotItem.setData("countText", countText);
   
               this.scene.inventorySlots.push(slotItem);
           }
@@ -214,11 +228,25 @@ export class GameUIManager {
         const slot = this.scene.inventorySlots[i];
         const isFilled = slot && slot.getData("filled");
         const itemKey = isFilled ? slot.getData("itemKey") : null;
+        const itemCount = isFilled ? (slot.getData("count") || 1) : 0;
+
+        const badgeHTML = itemCount > 1 ? `
+          <span style="position: absolute;
+            bottom: 4px;
+            right: 4px;
+            color: white;
+            font-size: 10px;
+            font-family: 'Press Start 2P';
+            text-shadow: 1px 1px 0 #000;
+            pointer-events: nonedw;
+            z-index: 10;
+            ">x${itemCount}</span>` : ``;
 
         slotsHTML += `
           <div class="inventory-slot">
             ${isFilled 
-              ? `<img src="assets/items/${itemKey}.png" class="inventory-item" />`
+              ? `<img src="assets/items/${itemKey}.png" class="inventory-item" />
+                 ${badgeHTML}`
               : ``}
           </div>
         `;

@@ -241,6 +241,23 @@ export default class GameScene extends Phaser.Scene {
     if (this.hero && !this.isDead) {
       this.networkManager.broadcastMovement()
     }
+    if (this.hero && this.hero.active) {
+      const label = this.hero.getData("label") as Phaser.GameObjects.Text;
+      if(label) {
+        label.x = this.hero.x;
+        label.y = this.hero.y - 120;
+      }
+    }
+
+    this.otherPlayers.forEach((playerSprite) => {
+      if (playerSprite && playerSprite.active) {
+        const label = playerSprite.getData("label") as Phaser.GameObjects.Text;
+        if (label) {
+          label.x = playerSprite.x;
+          label.y = playerSprite.y - 120;
+        }
+      }
+    });
   }
 
   // Animation

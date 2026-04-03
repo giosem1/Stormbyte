@@ -36,6 +36,9 @@ export class PlayerManager {
         this.scene.hero = this.scene.add.sprite(x, y, textureKey, 0);
         this.scene.hero.setOrigin(0.5, 1);
         this.scene.hero.setDepth(10);
+
+        this.scene.hero.setData("label", this.createPlayerLabel(x, y, this.scene.user.username));
+
         const frame = this.scene.textures.get(this.scene.userClass+"Death").get("0");
         const scale = this.scene.HERO_TARGET_HEIGHT / frame.height;
         this.scene.hero.setScale(scale);
@@ -309,7 +312,6 @@ export class PlayerManager {
         
         this.scene.isAttacking = true;
     
-    
         this.scene.hero.setTexture(this.scene.userClass+"Death");
         this.scene.hero.play("death" + this.scene.userClass, true);
         fetch("http://localhost:7071/api/update_game_lobby", {
@@ -392,5 +394,18 @@ export class PlayerManager {
         hearts.forEach(h => h.setVisible(true));
     
         this.scene.cameras.main.startFollow(this.scene.hero);
+      }
+
+      public createPlayerLabel(x: number, y: number, username: string): Phaser.GameObjects.Text {
+        const label = this.scene.add.text(x, y - 20, username, {
+          fontFamily: '"Press Start 2P"',
+          fontSize: '12px',
+          color: '#facc15',
+          stroke: '#000000',
+          strokeThickness: 3
+        });
+        label.setOrigin(0.5, 0.5);
+        label.setDepth(100);
+        return label;
       }
 }
