@@ -27,6 +27,13 @@ export class GameUIManager {
       this.scene.hero.play("death" + this.scene.userClass, true);
     }
 
+    const collectedItems: string[] = [];
+    this.scene.inventorySlots.forEach(slot => {
+      if (slot.active && slot.texture.key !== "__MISSING") {
+        collectedItems.push(slot.texture.key);
+      }
+    });
+
     const winPanel = new GenericPanel("generic-panel", "panel-content", "overlay");
 
     const panelContent = document.getElementById("panel-content");
@@ -83,6 +90,7 @@ export class GameUIManager {
         storyElement.innerHTML = storyText.replace(/\n/g, "<br>");
       }
     };
+    let finalStory = "";
     if (!this.scene.isGuest) {
       const promptData = this.scene.stroyManager.generateChroniclePrompt();
       try {
@@ -97,12 +105,13 @@ export class GameUIManager {
   
         if (response.ok) {
           const data = await response.json();
-          const finalStory = data.story;
+          finalStory = data.story;
 
           updateStory(finalStory);
 
+          const saveRes = await this.scene.networkManager.saveProgress(collectedItems, finalStory);
           if(this.scene.networkManager && this.scene.networkManager.broadcastStory) {
-            this.scene.networkManager.broadcastStory(finalStory);
+            this.scene.networkManager.broadcastStory(finalStory, saveRes.blobUrl);
           }
     
         } else {
@@ -118,6 +127,23 @@ export class GameUIManager {
 
     }
 
+    await this.scene.networkManager.saveProgress(collectedItems, finalStory);
+  }
+
+  public async finalizeGuestWin(storyText: string, blobUrl: string) {
+    const storyElement = document.querySelector(".bard-text");
+    if(storyElement) {
+      storyElement.innerHTML = storyText.replace(/\n/g, "<br>");
+    }
+
+    const collectedItems: string[] = [];
+    this.scene.inventorySlots.forEach(slot => {
+      if (slot.active && slot.texture.key !== "__MISSING") {
+        collectedItems.push(slot.texture.key);
+      }
+    });
+
+    await this.scene.networkManager.saveProgress(collectedItems, storyText, blobUrl);
   }
   
   public createUI() {

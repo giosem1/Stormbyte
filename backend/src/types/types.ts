@@ -18,6 +18,14 @@ export interface User {
     name: string;
     blobUrl?: string;
   }[];
+  completedRuns?: Array<{
+    dungeonCode: string;
+    lobbyId: string;
+    userClass: string;
+    itemsCollected: string[];
+    blobUrl: string;
+    completedAt: string;
+  }>;
 }
 
 export interface RoomSave {

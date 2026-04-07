@@ -218,10 +218,14 @@ export class NetworkManager {
             }
         });
 
-        connection.on("StoryGenerated", (_userId: string, text: string) => {
-            const storyElement = document.querySelector(".bard-text");
-            if (storyElement && text) {
-                storyElement.innerHTML = text.replace(/\n/g, "<br>");
+        connection.on("StoryGenerated", (_userId: string, text: string, blobUrl: string) => {
+            if (this.scene.uiManager && this.scene.uiManager.finalizeGuestWin) {
+                this.scene.uiManager.finalizeGuestWin(text, blobUrl);
+            } else {
+                const storyElement = document.querySelector(".bard-text");
+                if (storyElement && text) {
+                    storyElement.innerHTML = text.replace(/\n/g, "<br>");
+                }
             }
         });
 
@@ -409,7 +413,7 @@ export class NetworkManager {
 
     }
 
-    public broadcastStory(storyText: string){
+    public broadcastStory(storyText: string, blobUrl: string){
         fetch("http://localhost:7071/api/update_game_lobby", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -419,8 +423,32 @@ export class NetworkManager {
                 userId: this.scene.user.uid,
                 actionType: "STORY_GENERATED",
                 targetId: "story",  
-                text: storyText
+                text: storyText,
+                blobUrl: blobUrl
             })
         }).catch(err => console.error("Error during the send of story: ", err));
+    }
+
+    public async saveProgress(collectedItems: string[], fullStory: string, blobUrl?: string) {
+        try {
+            const res = await fetch("http://localhost:7071/api/save_game_progress", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    dungeonCode: this.scene.dungeonCode,
+                    dungeonName: this.scene.dungeon.name,
+                    lobbyId: this.scene.lobbyId,
+                    userId: this.scene.user.uid,
+                    username: this.scene.user.username,
+                    userClass: this.scene.userClass,
+                    items: collectedItems,
+                    story: fullStory,
+                    blobUrl: blobUrl
+                })
+            });
+            return await res.json();
+        } catch(err) {
+            console.error("Error while saving progress: ", err);
+        } 
     }
 }

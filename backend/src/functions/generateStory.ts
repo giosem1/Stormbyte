@@ -33,7 +33,6 @@ app.http("generate_story", {
             }
 
             const url = `${endpoint}/openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`;
-            console.log(url)
             const openAiResponse = await fetch(url, {
                 method: "POST",
                 headers: {

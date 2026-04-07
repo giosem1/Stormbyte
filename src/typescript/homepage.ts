@@ -350,8 +350,9 @@ const friends = document.getElementById("friends") as HTMLParagraphElement;
 const dungeons = document.getElementById("dungeon") as HTMLParagraphElement;
 const searchF = document.getElementById("search") as HTMLParagraphElement;
 const chanllengeD = document.getElementById("chanllenge") as HTMLParagraphElement;
+const adventures = document.getElementById("adventures") as HTMLParagraphElement;
+const treasures = document.getElementById("treasures") as HTMLParagraphElement;
 const exitD = document.getElementById("exit") as HTMLParagraphElement;
-
 // Create Dungeon
 createD.addEventListener("click", ()=>{
   localStorage.setItem("user", JSON.stringify(user));
@@ -716,6 +717,170 @@ dungeons.addEventListener("click", ()=>{
   document.getElementById("closeDungeons")?.addEventListener("click", () => {
     panel.hide();
   });
+});
+
+adventures.addEventListener("click", ()=>{
+  const session = getSession();
+  if (!session || !session.user) return;
+
+  try {
+    const user = currentUser();
+    const runs = user.completedRuns || [];
+
+    let adventuresHTML = "";
+
+    if (runs.length === 0) {
+       adventuresHTML = `<p class="text-gray-400 mt-4 text-center text-xs" style="font-family: 'Press Start 2P', cursive; line-height: 1.6;">No adventures completed... yet.</p>`;
+    } else {
+      adventuresHTML = runs.map((run: any, index: number) => `
+        <div class="flex flex-col border border-gray-600 rounded-lg p-3 bg-gray-800 transition-all duration-300 w-full min-w-0">
+          <div class="flex flex-col mb-3 w-full min-w-0" style="font-family: 'Press Start 2P', cursive;">
+            <span class="text-white text-xs truncate block mb-2" style="line-height: 1.5;">Dungeon: ${run.dungeonName}</span>
+            <span class="text-gray-400 text-[10px] truncate block" style="line-height: 1.5;">Class: ${run.userClass} | Date: ${new Date(run.completedAt).toLocaleDateString()}</span>
+          </div>
+          
+          <button class="run-btn mt-2 bg-blue-600 hover:bg-blue-500 text-white rounded px-2 py-3 text-xs transition-colors w-full" data-blob="${run.blobUrl}" id="btn-read-${index}" style="font-family: 'Press Start 2P', cursive;">
+            Read Chronicles
+          </button>
+
+          <div id="story-container-${index}" class="hidden mt-3 w-full min-w-0"></div>
+        </div>
+      `).join("");
+    }
+
+    panel.show(`
+      <div class="w-full min-w-0 overflow-hidden max-w-[90vw] md:max-w-[450px]">
+        <h2 class="panel-title text-sm mb-5 text-white truncate text-center" style="font-family: 'Press Start 2P', cursive;">Your Adventures</h2>
+        
+        <div class="flex flex-col space-y-4 max-h-[60vh] overflow-y-auto w-full min-w-0 overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          ${adventuresHTML}
+        </div>
+
+        <button id="closeAdventures" class="panel-btn mt-5 w-full text-center text-white text-xs py-3" style="font-family: 'Press Start 2P', cursive;">CLOSE</button>
+      </div>
+    `);
+
+    document.getElementById("closeAdventures")?.addEventListener("click", () => {
+      panel.hide();
+    });
+
+    document.querySelectorAll(".run-btn").forEach((btn, index) => {
+      btn.addEventListener("click", async (e) => {
+        const buttonEl = e.currentTarget as HTMLButtonElement;
+        const blobUrl = buttonEl.getAttribute("data-blob");
+        const storyContainer = document.getElementById(`story-container-${index}`);
+        
+        if (storyContainer && blobUrl) {
+          buttonEl.classList.add("hidden");
+          
+          storyContainer.innerHTML = `<p class='text-gray-400 animate-pulse text-center text-[10px] my-3' style="font-family: 'Press Start 2P', cursive; line-height: 1.6;"><em>Extracting chronicles...</em></p>`;
+          storyContainer.classList.remove("hidden");
+
+          try {
+            const blobRes = await fetch(blobUrl);
+            const runData = await blobRes.json();
+            const author = runData.username || user.username;
+            const storyText = (runData.story || "The chronicle was lost...")
+                .replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, '');
+            
+            storyContainer.innerHTML = `
+              <div class="p-3 bg-yellow-900 bg-opacity-20 border border-yellow-700 rounded-md shadow-inner flex flex-col w-full min-w-0 mt-2">
+                <h3 class="text-yellow-400 mb-4 text-xs text-center border-b border-yellow-700 pb-3 flex justify-center items-center gap-2 w-full truncate" style="font-family: 'Press Start 2P', cursive; line-height: 1.6;">
+                  <span>📜</span> <span class="truncate">Chronicles of ${author}</span>
+                </h3>
+                
+                <div id="story-text-box-${index}" class="max-h-56 overflow-y-auto overflow-x-hidden text-yellow-50 text-xs leading-loose whitespace-pre-wrap break-words w-full min-w-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]" style="font-family: 'Press Start 2P', cursive; word-wrap: break-word; word-break: break-word;"></div>
+                
+                <button class="close-story-btn mt-5 bg-red-800 hover:bg-red-700 text-white rounded px-2 py-3 text-[10px] transition-colors w-full shadow-md" style="font-family: 'Press Start 2P', cursive;">
+                  Close Chronicle
+                </button>
+              </div>
+            `;
+
+            const textBox = document.getElementById(`story-text-box-${index}`);
+            if (textBox) {
+                textBox.textContent = storyText;
+            }
+
+            const closeBtn = storyContainer.querySelector('.close-story-btn');
+            if (closeBtn) {
+              closeBtn.addEventListener('click', () => {
+                storyContainer.classList.add("hidden");
+                storyContainer.innerHTML = "";
+                buttonEl.classList.remove("hidden");
+              });
+            }
+
+          } catch (err) {
+            storyContainer.innerHTML = `
+              <p class='text-red-500 text-[10px] text-center mb-3' style="font-family: 'Press Start 2P', cursive; line-height: 1.6;">Unable to decipher the scroll.</p>
+              <button class="close-story-btn bg-gray-600 hover:bg-gray-500 text-white rounded px-2 py-3 text-[10px] w-full" style="font-family: 'Press Start 2P', cursive;">Close</button>
+            `;
+            storyContainer.querySelector('.close-story-btn')?.addEventListener('click', () => {
+              storyContainer.classList.add("hidden");
+              buttonEl.classList.remove("hidden");
+            });
+          }
+        }
+      });
+    });
+  
+  } catch(err) {
+    console.error("Error retrieving adventures:", err);
+  }
+});
+
+treasures.addEventListener("click", ()=>{
+  const session = getSession();
+  if (!session || !session.user) return;
+
+  try {
+    const user = currentUser();
+    const runs = user.completedRuns || [];
+
+    const itemCounts: Record<string, number> = {};
+    runs.forEach((run: any) => {
+      if (run.itemsCollected) {
+        run.itemsCollected.forEach((item: string) => {
+          if (item && item !== "__MISSING") {
+            itemCounts[item] = (itemCounts[item] || 0) + 1;
+          }
+        });
+      }
+    });
+
+    const uniqueItems = Object.keys(itemCounts);
+    let treasuresHTML = "";
+
+    if (uniqueItems.length === 0) {
+      treasuresHTML = `<p class="text-gray-400 mt-5 text-center text-xs" style="font-family: 'Press Start 2P', cursive; line-height: 1.6;">Your chest is empty.</p>`;
+    } else {
+      const itemsList = uniqueItems.map(item => `
+        <div class="flex flex-col items-center justify-center p-3 bg-gray-800 border border-gray-600 rounded">
+            <img src="assets/items/${item}.png" alt="${item}" class="w-12 h-12 mb-3" style="image-rendering: pixelated;">
+            <span class="text-white text-[10px] capitalize text-center" style="font-family: 'Press Start 2P', cursive; line-height: 1.6;">${item}</span>
+            <span class="text-yellow-400 text-xs mt-2" style="font-family: 'Press Start 2P', cursive;">x${itemCounts[item]}</span>
+        </div>
+      `).join("");
+      
+      treasuresHTML = `<div class="grid grid-cols-2 md:grid-cols-3 gap-4 overflow-y-auto max-h-[60vh] mt-5 w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">${itemsList}</div>`;
+    }
+
+    panel.show(`
+      <div class="w-full min-w-0 overflow-hidden max-w-[90vw] md:max-w-[450px]">
+        <h2 class="panel-title text-sm mb-3 text-white text-center" style="font-family: 'Press Start 2P', cursive;">Your Treasure</h2>
+        ${treasuresHTML}
+        <button id="closeTreasures" class="panel-btn mt-6 w-full text-center text-white text-xs py-3" style="font-family: 'Press Start 2P', cursive;">CLOSE</button>
+      </div>
+    `);
+
+    document.getElementById("closeTreasures")?.addEventListener("click", () => {
+      panel.hide();
+    });
+
+  } catch (error) {
+    console.error("Error retrieving treasures:", error);
+  }
 });
 
 exitD.addEventListener("click", ()=>{

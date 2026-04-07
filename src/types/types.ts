@@ -13,6 +13,14 @@ export interface User {
     friends: Friend[]
     inventory?: any[],
     dungeons?: Dungeon[],
+    completedRuns?: Array<{
+      dungeonCode: string;
+      lobbyId: string;
+      userClass: string;
+      itemsCollected: string[];
+      blobUrl: string;
+      completedAt: string;
+    }>;
 }
 
 export interface Dungeon{

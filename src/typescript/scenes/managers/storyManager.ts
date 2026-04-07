@@ -42,5 +42,14 @@ export class StoryManager {
         return prompt;
     }
         
+    public getFullStory(): string{
+        if (this.events.length === 0) return "No event register";
+
+        this.events.sort((a,b) => a.timestamp - b.timestamp);
+        return this.events.map(e => {
+            const time = new Date(e.timestamp).toLocaleDateString();
+            return `[${time}] ${e.actor} (${e.actorClass}) in the room '${e.roomName}': ${e.details}`;
+        }).join("\n");
+    }
 
 }
