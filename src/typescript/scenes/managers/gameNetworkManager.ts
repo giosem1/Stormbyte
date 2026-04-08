@@ -219,6 +219,8 @@ export class NetworkManager {
         });
 
         connection.on("StoryGenerated", (_userId: string, text: string, blobUrl: string) => {
+            if(_userId === this.scene.user.uid) return;
+            
             if (this.scene.uiManager && this.scene.uiManager.finalizeGuestWin) {
                 this.scene.uiManager.finalizeGuestWin(text, blobUrl);
             } else {

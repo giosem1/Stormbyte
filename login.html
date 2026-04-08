@@ -12,8 +12,21 @@
 <body>
     <div id="login-box">
     <h2>Login</h2>
-    <input type="text" id="username" placeholder="Username" autocomplete="off">
-    <input type="password" id="password" placeholder="Password">
+    <div class ="w-full mb-3">
+        <input type="text" id="username" placeholder="Username" autocomplete="off">
+        <ul id="username-errors" class="text-red-500 text-xs mt-1 text-left list-none pl-1"></ul>
+    </div>
+
+   <div class="w-full mb-3">
+        <div class="relative w-full">
+            <input type="password" id="password" placeholder="Password" class="w-full pr-10">
+            
+            <button type="button" id="toggle-password" class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                <img id="toggle-password-icon" src="/assets/icons/toggleClosed.png" alt="Toggle Password" class="w-5 h-5 cursor-pointer">
+            </button>
+        </div>
+        <ul id="password-errors" class="text-red-500 text-xs mt-1 text-left list-none pl-1"></ul>
+    </div>
     <button id="login-btn">Login</button>
     <span id="register-link">Registration</span>
 </div>

@@ -20,7 +20,9 @@ app.http("login", {
 
     const body = await req.json() as LoginUser;
     const { username, password } = body;
-    if (!username || !password) return error(400, "Username e password richiesti");
+    if (typeof username !== "string" || typeof password !== "string" || !username || !password) {
+      return error(400, "Username e password richiesti");
+    } 
 
     const client = await getMongoClient();
     const collection = client.db("stormbyte-db").collection<User>("users");

@@ -34,6 +34,26 @@ export function getToken(): string | null {
   return session?.token ?? null;
 }
 
+export function isAuthenticated(): boolean {
+  const session = getSession();
+  if (!session) return false;
+
+  if(isTokenExpired()) {
+    clearSession()
+    return false;
+  }
+
+  return true;
+}
+
+export function requireUser(): User{
+  const user = getUser();
+  if (!user){
+    throw new Error("User not authenticated");
+  }
+  return user;
+}
+
 export function isTokenExpired(): boolean {
   const token = getToken();
   if (!token) return true;

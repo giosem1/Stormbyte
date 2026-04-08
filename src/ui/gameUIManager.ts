@@ -127,7 +127,6 @@ export class GameUIManager {
 
     }
 
-    await this.scene.networkManager.saveProgress(collectedItems, finalStory);
   }
 
   public async finalizeGuestWin(storyText: string, blobUrl: string) {

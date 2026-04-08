@@ -1,11 +1,18 @@
 import Phaser from "phaser";
 import { Torch } from "./scenes/torch";
 import GenericPanel from "../ui/pannel";
-import { clearSession, getSession, setSession } from "../utils/session";
+import { clearSession, getSession, setSession, isAuthenticated, requireUser } from "../utils/session";
 import { createConnection, startConnection } from "../utils/signalrClient";
 import { PREVIEW_TO_CLASS, type Friend, type PlayerClass, type User } from "../types/types";
 
 import { PREVIEW_CONFIG, mountPreview, unmountPreview } from "./previewanimation"; 
+
+if(!isAuthenticated()) {
+  window.location.href = "login.html";
+  throw new Error("Session not valid");
+}
+
+const initialUser = requireUser();
 const config = {
    type: Phaser.AUTO,
    width: window.innerWidth,
@@ -23,26 +30,15 @@ const panel = new GenericPanel(
 );
 
 //User
-const session = getSession();
-if (!session) {
-    window.location.href = "login.html";
-    throw new Error("User non autenticato");
-}
 
-const user = session.user;
 
 const username = document.getElementById("username") as HTMLParagraphElement;
 const uid = document.getElementById("usercode") as HTMLParagraphElement; 
-username.textContent = user.username
-uid.textContent = user.uid
+if (username) username.textContent = initialUser.username;
+if (uid) uid.textContent = initialUser.uid;
 
 function currentUser(): User {
-  const session = getSession();
-  if (!session || !session.user) {
-    window.location.href = "login.html";
-    throw new Error("User non autenticato");
-  }
-  return session.user;
+  return requireUser();
 }
 
 let notifications: any[] = JSON.parse(localStorage.getItem("app_notifications") || "[]");
@@ -65,7 +61,7 @@ window.addEventListener("storage", (e) => {
     }
 });
 
-const connection = createConnection(user);
+const connection = createConnection(initialUser);
 startConnection();
 connection.on("UserUpdated", (updatedUser) => {
   const currentSession = getSession();
@@ -82,11 +78,11 @@ connection.on("UserUpdated", (updatedUser) => {
   refreshUI();
 });
 function refreshUI() {
-  const currentUser = getSession()?.user;
+  const currentUser = requireUser();
   if (!currentUser) return;
 
-  username.textContent = currentUser.username;
-  uid.textContent = currentUser.uid;
+  if(username) username.textContent = currentUser.username;
+  if(uid) uid.textContent = currentUser.uid;
 }
 
 type EventType = "friend_request" | "class_change" | "dungeon_joined";
@@ -234,7 +230,7 @@ notificationBell.addEventListener("click", () => {
       const index = e.target.dataset.index;
       const notif = notifications[index];
 
-      await acceptFriendRequest(notif.fromUid, user);
+      await acceptFriendRequest(notif.fromUid, currentUser());
 
       notifications.splice(index, 1);
       saveAndRefreshNotifications();
@@ -355,7 +351,7 @@ const treasures = document.getElementById("treasures") as HTMLParagraphElement;
 const exitD = document.getElementById("exit") as HTMLParagraphElement;
 // Create Dungeon
 createD.addEventListener("click", ()=>{
-  localStorage.setItem("user", JSON.stringify(user));
+  localStorage.setItem("user", JSON.stringify(currentUser()));
   window.location.href = "createDungeon.html";
 })
 
@@ -397,7 +393,7 @@ searchF.addEventListener("click", () => {
     }
 
     const friend = await res.json();
-    showFriendPanel(friend, user);
+    showFriendPanel(friend, currentUser());
 
     } catch(err) {
     console.error(err);
@@ -425,7 +421,7 @@ searchF.addEventListener("click", () => {
   input.focus();
 });
 
-function showFriendPanel(friend: Friend, user: User) {
+function showFriendPanel(friend: Friend, _user: User) {
   const AZURE_BASE_URL = "https://stormbyte.blob.core.windows.net/stormbyte-assets/";
   panel.show(`
     <h2 class="panel-title text-lg mb-4">Friend Found</h2>
@@ -467,7 +463,7 @@ function showFriendPanel(friend: Friend, user: User) {
   document
     .getElementById("sendFriendRequest")
     ?.addEventListener("click", () => {
-      sendFriendRequest(friend, user);
+      sendFriendRequest(friend, currentUser());
     });
 }
 
@@ -542,12 +538,13 @@ chanllengeD.addEventListener("click", ()=>{
     );
 
     const dungeon = await response.json();
-    const uniqueLobbyId = `${dungCode}_${session.user.username}`;
+    const activeUser = currentUser();
+    const uniqueLobbyId = `${dungCode}_${activeUser.username}`;
 
     localStorage.setItem("current_game_dungeon", dungCode);
     localStorage.setItem("current_lobby_id", uniqueLobbyId);
     localStorage.setItem("is_game_guest", "false");
-    localStorage.setItem("user", JSON.stringify(user));
+    localStorage.setItem("user", JSON.stringify(activeUser));
     localStorage.setItem("dungeon", JSON.stringify(dungeon));
     window.location.href = "dungeonGame.html";
 
@@ -634,7 +631,7 @@ changeC.addEventListener("click", () => {
       .forEach(el => el.classList.add("border-red-500"));
     return;
   }
-    updateClass(selectedClass, user.uid)
+    updateClass(selectedClass, currentUser().uid)
     panel.hide()
   });
   document.getElementById("cancelClass")?.addEventListener("click", () => {
@@ -720,8 +717,6 @@ dungeons.addEventListener("click", ()=>{
 });
 
 adventures.addEventListener("click", ()=>{
-  const session = getSession();
-  if (!session || !session.user) return;
 
   try {
     const user = currentUser();

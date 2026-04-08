@@ -19,7 +19,7 @@ body {
     border-radius: 10px;
     box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
     text-align: center;
-    width: 350px;
+    width: 400px;
     box-sizing: border-box;
 }
 
@@ -33,14 +33,17 @@ h2 {
 input[type="text"],
 input[type="password"] {
     width: calc(100% - 20px);
+    box-sizing: border-box;
     padding: 15px;
-    margin-bottom: 20px;
     background: #2a2a2a;
     border: 2px solid #555;
     border-radius: 5px;
     color: #e0e0e0;
     font-size: 1.1em;
     outline: none;
+}
+input[type="password"] {
+    padding-right: 65px;
 }
 
 input[type="text"]::placeholder,
@@ -52,6 +55,20 @@ input[type="text"]:focus,
 input[type="password"]:focus {
     border-color: #ffd700;
     box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+}
+#toggle-password {
+    right: 10px;
+}
+#toggle-password-icon {
+    width: 40px !important;
+    height: 40px !important;
+    opacity: 0.7;
+    transition: all 0.2s ease-in-out;
+}
+
+#toggle-password-icon:hover{
+    opacity: 1;
+    transform: scale(1.15);
 }
 
 button#login-btn {
@@ -65,7 +82,7 @@ button#login-btn {
     font-weight: bold;
     cursor: pointer;
     transition: background-color 0.3s ease;
-    margin-top: 10px;
+    margin-top: 20px;
 }
 
 button#login-btn:hover {
