@@ -8,7 +8,7 @@ import { enableDrag, setSendDungeonEvent, setSendRealTimeEvent ,loadItemsFromSto
 import { createConnection, startConnection, onRoomMoved, onChatMessage, broadcastRealTimeMove, onNameChanged} from "../../utils/signalrClient";
 
 type MenuCategory = "rooms" | "enemies" | "traps";
-let isRemoteUpdate = false;
+export let isRemoteUpdate = false;
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export function initDungeonEditor() {
