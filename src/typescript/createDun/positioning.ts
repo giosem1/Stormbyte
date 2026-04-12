@@ -112,7 +112,7 @@ function trySnap(moving: PlacedItem): boolean {
 export function spawnDefaultRoom() {
   const AZURE_BASE_URL = "https://stormbyte.blob.core.windows.net/stormbyte-assets/";
   const src = AZURE_BASE_URL+"rooms/loginroom.png";
-  
+
   const img = document.createElement("img");
   img.src = src;
   img.classList.add("absolute", "select-none", "room-dynamic");
@@ -132,7 +132,7 @@ export function spawnDefaultRoom() {
     img.style.top = `${y}px`;
 
     const item: PlacedItem = {
-      id: crypto.randomUUID(),//TODO: Change uid
+      id: crypto.randomUUID(),
       src,
       type: "room",
       x,
