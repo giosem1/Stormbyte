@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { Mage } from "./scenes/mage/mageattack";
 import { Knight } from "./scenes/knight/knightattack";
-import { Archer } from "./scenes/archer/archerwalk";
+import { Archer } from "./scenes/archer/archerattack";
 //Preview
 type PreviewConfig = {
   id: string;
