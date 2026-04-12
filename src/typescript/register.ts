@@ -159,7 +159,7 @@ registerBtn.addEventListener("click", async () => {
   };
 
   registerUser(newUser)
-  window.location.href = "login.html";
+  window.location.href = "index.html";
 });
 
 async function registerUser(data: User) {
