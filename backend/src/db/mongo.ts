@@ -1,5 +1,5 @@
-import { MongoClient, ServerApiVersion } from "mongodb";
 import { setServers } from "node:dns/promises";
+import { MongoClient, ServerApiVersion } from "mongodb";
 setServers(["1.1.1.1", "8.8.8.8"]);
 
 const MONGO_URI = process.env.MONGO_URI as string;

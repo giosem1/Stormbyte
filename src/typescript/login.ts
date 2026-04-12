@@ -1,6 +1,8 @@
 import Phaser from "phaser";
 import { Torch } from "./scenes/torch";
 import { setSession } from "../utils/session";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const loginBtn = document.getElementById("login-btn") as HTMLButtonElement;
 const usernameInput = document.getElementById("username") as HTMLInputElement;
 const usernameErrors = document.getElementById("username-errors") as HTMLUListElement;
@@ -59,7 +61,7 @@ loginBtn.addEventListener("click", async () => {
 });
 
 export async function loginUser(username: string, password: string) {
-  const res = await fetch("http://localhost:7071/api/login", {
+  const res = await fetch(`${API_BASE_URL}/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password })

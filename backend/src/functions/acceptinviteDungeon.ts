@@ -1,46 +1,42 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { addUserToLobby, getLobby } from "../shared/lobbyStore";
+import { app, HttpRequest, HttpResponseInit, InvocationContext, output } from "@azure/functions";
 
 interface AcceptLobby {
   dungeonCode: string;
   userId: string;
 }
 
-app.http("join_lobby", {
-  methods: ["POST"],
-  authLevel: "anonymous",
-  route: "join_lobby",
-  extraOutputs: [
-    {
-      type: "signalR",
-      name: "signalRGroupActions",
-      hubName: "notifications"
-    },
-    {
-      type: "signalR",
-      name: "signalRMessages",
-      hubName: "notifications"
-    }
-  ],
-  handler: async (request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+const signalRGroupActionsOutput = output.generic({
+    type: "signalR",
+    name: "signalRGroupActions",
+    hubName: "notifications"
+});
+
+const signalRMessagesOutput = output.generic({
+    type: "signalR",
+    name: "signalRMessages",
+    hubName: "notifications"
+});
+
+export async function acceptInviteHandler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
     try {
-      const body = await request.json() as AcceptLobby;
-      const { dungeonCode, userId } = body;
+        const body = await request.json() as AcceptLobby;
+        const { dungeonCode, userId } = body;
 
-      if (!dungeonCode || !userId) {
-        return {
-          status: 400,
-          jsonBody: { error: "Parametri mancanti" }
-        };
-      }
+        if (!dungeonCode || !userId) {
+            return {
+                status: 400,
+                jsonBody: { error: "Missing required parameters" }
+            };
+        }
 
-      const lobby = getLobby(dungeonCode);
-      if (!lobby) {
-        return {
-          status: 404,
-          jsonBody: { error: "Lobby non trovata" }
-        };
-      }
+        const lobby = getLobby(dungeonCode);
+        if (!lobby) {
+            return {
+                status: 404,
+                jsonBody: { error: "Lobby not found" }
+            };
+        }
 
       context.extraOutputs.set("signalRGroupActions", [
         {
@@ -60,7 +56,7 @@ app.http("join_lobby", {
         }
       ]);
 
-      context.extraOutputs.set("signalRGrouActions", [
+      context.extraOutputs.set("signalRGroupActions", [
         {
           userId: userId,
           groupName: dungeonCode,
@@ -68,22 +64,23 @@ app.http("join_lobby", {
         }
       ]);
 
-      return {
-        status: 200,
-        jsonBody:{
-          success: true,
-          ownerId: lobby.ownerId,
-          state: lobby.state 
-        }
-      };
+        return {
+            status: 200,
+            jsonBody: updatedLobby
+        };
 
-    } catch (err: any) {
-      console.error("JOIN LOBBY ERROR:", err);
-
-      return {
-        status: 500,
-        jsonBody: { error: "Errore interno server" }
-      };
+    } catch (error) {
+        return {
+            status: 500,
+            jsonBody: { error: "Malformed request or internal server error" }
+        };
     }
-  }
+}
+
+app.http("acceptinviteDungeon", {
+    methods: ["POST"],
+    authLevel: "anonymous",
+    route: "join_lobby",
+    extraOutputs: [signalRGroupActionsOutput, signalRMessagesOutput],
+    handler: acceptInviteHandler
 });

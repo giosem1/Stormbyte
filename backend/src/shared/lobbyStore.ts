@@ -77,10 +77,6 @@ export function applyActionToState(state: any, action: any) {
       break;
   }
 }
-
-/**
- * Aggiunge un evento alla lobby (es. MOVE_ROOM, CREATE_ROOM, ecc.)
- */
 export function addDungeonEvent(dungeonCode: string, event: { userId: string, type: string, payload: any }): (Lobby & { events?: any[] }) {
   const lobby = lobbies[dungeonCode];
 
@@ -93,9 +89,6 @@ export function addDungeonEvent(dungeonCode: string, event: { userId: string, ty
   }
 
   lobby.events.push(event);
-
-  // Se vuoi, puoi anche aggiornare lo stato della lobby in base all'azione
-  // applyActionToState(lobby.state, event);
 
   return lobby;
 }

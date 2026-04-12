@@ -1,5 +1,7 @@
-import type { Dungeon, RoomSave, TrapSave, ItemSave} from "../../types/types";
 import { state, type PlacedItem, type DungeonSave } from "./state";
+import type { Dungeon, RoomSave, TrapSave, ItemSave} from "../../types/types";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const dungeonNameInput = document.getElementById(
   "dungeon-name-input"
@@ -65,7 +67,7 @@ export function buildDungeonSave(owner: string, invited: string[]): DungeonSave 
 }
 
 export async function saveDungeon(data: Dungeon) {
-  const response = await fetch("http://localhost:7071/api/save_dungeon", {
+  const response = await fetch(`${API_BASE_URL}/save_dungeon`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"

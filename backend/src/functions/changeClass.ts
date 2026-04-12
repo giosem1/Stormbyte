@@ -1,63 +1,56 @@
+import { User } from "../types/types";
 import { getMongoClient } from "../db/mongo";
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
-import { User } from "../types/types";
 
-interface ChangeClass{
-    selectedClass: string,
-    UserId: string
+interface ChangeClass {
+    selectedClass: string;
+    UserId: string;
 }
-app.http("class", {
-  methods: ["PATCH", "OPTIONS"],
-  authLevel: "anonymous",
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
 
-    if (req.method === "OPTIONS") {
-      return {
-        status: 204,
-        headers: corsHeaders()
-      };
-    }
-    let body = await req.json() as ChangeClass;
-    const { selectedClass, UserId } = body;
+export async function changeClassHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+    try {
+        const body = await req.json() as ChangeClass;
+        const { selectedClass, UserId } = body;
 
-    const client = await getMongoClient();
-    const db = client.db("stormbyte-db");
-    const users = db.collection<User>("users")
-    const result = await users.updateOne(
-        { uid: UserId },
-        {
-            $set: {
-                classe: selectedClass
-            }
+        if (!selectedClass || !UserId) {
+            return { 
+                status: 400, 
+                jsonBody: { error: "Missing required parameters" } 
+            };
         }
-    )
-    return {
-      status: 201,
-      headers: {
-        ...corsHeaders(),
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(result)
-    };
-  }
+
+        const client = await getMongoClient();
+        const db = client.db("stormbyte-db");
+        const users = db.collection<User>("users");
+
+        const result = await users.updateOne(
+            { uid: UserId },
+            { $set: { classe: selectedClass } }
+        );
+
+        if (result.matchedCount === 0) {
+            return { 
+                status: 404, 
+                jsonBody: { error: "User not found" } 
+            };
+        }
+
+        return {
+            status: 200,
+            jsonBody: { success: true, modifiedCount: result.modifiedCount }
+        };
+
+    } catch (error) {
+        return { 
+            status: 500, 
+            jsonBody: { error: "Malformed request or internal server error" } 
+        };
+    }
+}
+
+app.http("changeClass", {
+    methods: ["PATCH"],
+    authLevel: "anonymous",
+    route: "class",
+    handler: changeClassHandler
 });
-
-function corsHeaders() {
-  return {
-    "Access-Control-Allow-Origin": "http://localhost:5173",
-    "Access-Control-Allow-Methods": "PATCH, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type"
-  };
-}
-
-function error(status: number, message: string): HttpResponseInit {
-  return {
-    status,
-    headers: {
-      ...corsHeaders(),
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ error: message })
-  };
-}
-

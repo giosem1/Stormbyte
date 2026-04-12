@@ -1,30 +1,44 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { getMongoClient } from "../db/mongo";
 import { Friend, User } from "../types/types";
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 
-app.http("search_friend", {
-  methods: ["GET"],
-  authLevel: "anonymous",
-  handler: async (req, ctx): Promise<HttpResponseInit> => {
-    const friend_code= req.query.get("code") ?? "";
-    const client = await getMongoClient();
-    const collection = client.db("stormbyte-db").collection<User>("users");
+export async function searchFriendsHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+    try {
+        const friend_code = req.query.get("code") ?? "";
 
-    const friend = await collection.findOne({uid: friend_code});
-    if (!friend) {
-      return {
-        status:200
-      }
+        if (!friend_code) {
+            return { status: 400, jsonBody: { error: "Missing friend code" } };
+        }
+
+        const client = await getMongoClient();
+        const collection = client.db("stormbyte-db").collection<User>("users");
+
+        const friend = await collection.findOne({ uid: friend_code });
+        
+        if (!friend) {
+            return { status: 404, jsonBody: { error: "Friend not found" } };
+        }
+
+        const sendFriend: Friend = {
+            username: friend.username,
+            uid: friend.uid,
+            profImg: friend.profileImage
+        };
+
+        return {
+            status: 200,
+            jsonBody: sendFriend
+        };
+        
+    } catch (err) {
+        context.error("Error searching friend: ", err);
+        return { status: 500, jsonBody: { error: "Internal server error" } };
     }
-    const sendFriend: Friend = {
-        username: friend.username,
-        uid: friend.uid,
-        profImg: friend.profileImage
-    }
-    return {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(sendFriend)
-    };
-  }
+}
+
+app.http("searchFriends", {
+    methods: ["GET"],
+    authLevel: "anonymous",
+    route: "search_friend",
+    handler: searchFriendsHandler
 });

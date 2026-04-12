@@ -1,14 +1,15 @@
-import type { User } from "../../types/types";
+import "./movement";
+import { state } from "./state";
 import GenericPanel from "../../ui/pannel";
+import type { User } from "../../types/types";
 import { buildDungeonSave } from "./savedungeon";
 import { getSession } from "../../utils/session";
-import { createConnection, startConnection, onRoomMoved, onChatMessage, broadcastRealTimeMove, onNameChanged} from "../../utils/signalrClient";
 import { enableDrag, setSendDungeonEvent, setSendRealTimeEvent ,loadItemsFromStorage, spawnDefaultRoom } from "./positioning";
-import { state } from "./state";
-import "./movement";
+import { createConnection, startConnection, onRoomMoved, onChatMessage, broadcastRealTimeMove, onNameChanged} from "../../utils/signalrClient";
 
 type MenuCategory = "rooms" | "enemies" | "traps";
 let isRemoteUpdate = false;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export function initDungeonEditor() {
   const menuButtons = document.querySelectorAll<HTMLButtonElement>(".menu-btn");
@@ -21,6 +22,7 @@ export function initDungeonEditor() {
 
   let dungeonCode = localStorage.getItem("dungeonCode");
   if (!dungeonCode) {
+    console.log("Sono HOST")
     const gameName = "Stormbyte";
     const prefix = gameName.slice(0, 3).toUpperCase();
     const randomNumber = Math.floor(1000 + Math.random() * 9000);
@@ -50,7 +52,7 @@ export function initDungeonEditor() {
   }
 
   async function sendDungeonEvent(type: string, payload: any) {
-    await fetch("http://localhost:7071/api/dungeon_event", {
+    await fetch(`${API_BASE_URL}/dungeon_event`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -64,7 +66,7 @@ export function initDungeonEditor() {
   async function createLobbyOnServer() {
     const session = getSession();
     if (!session) return;
-    const response = await fetch("http://localhost:7071/api/create_lobby", {
+    const response = await fetch(`${API_BASE_URL}/create_lobby`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -260,7 +262,7 @@ export function initDungeonEditor() {
             const session = getSession();
             if (!session) throw new Error("Sessione non valida");
 
-            await fetch("http://localhost:7071/api/invite_dungeon", {
+            await fetch(`${API_BASE_URL}/invite_dungeon`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -286,7 +288,7 @@ export function initDungeonEditor() {
 
   window.addEventListener("DOMContentLoaded", async () => {
     await createLobbyOnServer();
-    const joinResponse = await fetch("http://localhost:7071/api/join_lobby", {
+    const joinResponse = await fetch(`${API_BASE_URL}/join_lobby`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -296,7 +298,6 @@ export function initDungeonEditor() {
     });
 
     const lobbyData = await joinResponse.json();
-    console.log(lobbyData)
     const isOwner = lobbyData.ownerId === currentUser().uid;
 
     const saveBtn = document.getElementById("save");

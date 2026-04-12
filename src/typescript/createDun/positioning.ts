@@ -1,5 +1,5 @@
-import { state, type PlacedItem, type ItemType, type Command } from "./state";
 import { updateCanvas } from "./movement";
+import { state, type PlacedItem, type ItemType, type Command } from "./state";
 
 const canvas = document.getElementById("infinite-canvas") as HTMLDivElement;
 

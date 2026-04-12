@@ -3,6 +3,7 @@ import GameScene from "../gamescene";
 import { TRAP_CONFIG } from "../../../types/types";
 import { createConnection, startConnection, onChatMessage } from "../../../utils/signalrClient";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 export class NetworkManager {
     private scene: GameScene;
 
@@ -25,7 +26,7 @@ export class NetworkManager {
             this.scene.isGuest = localStorage.getItem("is_game_guest") === "true";
         
             if (this.scene.isGuest) {
-                await fetch("http://localhost:7071/api/join_game", {
+                await fetch(`${API_BASE_URL}/join_game`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json"},
                 body: JSON.stringify({
@@ -39,7 +40,7 @@ export class NetworkManager {
                 localStorage.removeItem("is_game_guest");
                 localStorage.removeItem("current_lobby_id");
             } else {
-                await fetch("http://localhost:7071/api/create_lobby", {
+                await fetch(`${API_BASE_URL}/create_lobby`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -71,7 +72,7 @@ export class NetworkManager {
                 }
                 if (!this.scene.isGuest && this.scene.hero) {
                     try {
-                        await fetch("http://localhost:7071/api/sync_player_move", {
+                        await fetch(`${API_BASE_URL}/sync_player_move`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
@@ -276,7 +277,7 @@ export class NetworkManager {
         this.scene.lastSyncData = {x: currentX, y: currentY, anim: currentAnim, flipX: currentFlipX };
         try{
 
-        await fetch("http://localhost:7071/api/sync_player_move", {
+        await fetch(`${API_BASE_URL}/sync_player_move`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -298,7 +299,7 @@ export class NetworkManager {
         }
     }
     public broadcastEnemyState(enemyId: string, newState: string){
-        fetch("http://localhost:7071/api/update_game_lobby", {
+        fetch(`${API_BASE_URL}/update_game_lobby`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -329,7 +330,7 @@ export class NetworkManager {
             const text = messageInput.value.trim();
             if (!text) return;
             
-            fetch("http://localhost:7071/api/update_game_lobby", {
+            fetch(`${API_BASE_URL}/update_game_lobby`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -416,7 +417,7 @@ export class NetworkManager {
     }
 
     public broadcastStory(storyText: string, blobUrl: string){
-        fetch("http://localhost:7071/api/update_game_lobby", {
+        fetch(`${API_BASE_URL}/update_game_lobby`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -433,7 +434,7 @@ export class NetworkManager {
 
     public async saveProgress(collectedItems: string[], fullStory: string, blobUrl?: string) {
         try {
-            const res = await fetch("http://localhost:7071/api/save_game_progress", {
+            const res = await fetch(`${API_BASE_URL}/save_game_progress`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

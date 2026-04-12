@@ -1,8 +1,9 @@
-import { PREVIEW_CONFIG, mountPreview, unmountPreview } from "./previewanimation";
 import type { User } from "../types/types";
+import { PREVIEW_CONFIG, mountPreview, unmountPreview } from "./previewanimation";
 
 type PlayerClass = "Knight" | "Mage" | "Archer";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const PREVIEW_TO_CLASS: Record<string, PlayerClass> = {
   knight: "Knight",
   mage: "Mage",
@@ -162,7 +163,7 @@ registerBtn.addEventListener("click", async () => {
 });
 
 async function registerUser(data: User) {
-  const response = await fetch("http://localhost:7071/api/register", {
+  const response = await fetch(`${API_BASE_URL}/register`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"

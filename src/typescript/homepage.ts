@@ -1,17 +1,18 @@
 import Phaser from "phaser";
 import { Torch } from "./scenes/torch";
 import GenericPanel from "../ui/pannel";
-import { clearSession, getSession, setSession, isAuthenticated, requireUser } from "../utils/session";
 import { createConnection, startConnection } from "../utils/signalrClient";
-import { PREVIEW_TO_CLASS, type Friend, type PlayerClass, type User } from "../types/types";
-
 import { PREVIEW_CONFIG, mountPreview, unmountPreview } from "./previewanimation"; 
+import { PREVIEW_TO_CLASS, type Friend, type PlayerClass, type User } from "../types/types";
+import { clearSession, getSession, setSession, isAuthenticated, requireUser } from "../utils/session";
+
 
 if(!isAuthenticated()) {
   window.location.href = "login.html";
   throw new Error("Session not valid");
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const initialUser = requireUser();
 const config = {
    type: Phaser.AUTO,
@@ -30,8 +31,6 @@ const panel = new GenericPanel(
 );
 
 //User
-
-
 const username = document.getElementById("username") as HTMLParagraphElement;
 const uid = document.getElementById("usercode") as HTMLParagraphElement; 
 if (username) username.textContent = initialUser.username;
@@ -249,7 +248,7 @@ notificationBell.addEventListener("click", () => {
       if (!session) throw new Error("Sessione non valida");
 
       if (notif.type === "dungeon_invite") {
-          const res = await fetch("http://localhost:7071/api/join_lobby", {
+          const res = await fetch(`${API_BASE_URL}/join_lobby`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -271,7 +270,7 @@ notificationBell.addEventListener("click", () => {
           localStorage.setItem("isGuest", "true");
           window.location.href = "createDungeon.html";
       } else if (notif.type === "game_invite") {
-        const res = await fetch("http://localhost:7071/api/retrive_dungeon?code=" + notif.dungeonCode);
+        const res = await fetch(`${API_BASE_URL}/retrive_dungeon?code=` + notif.dungeonCode);
         const dungeonData = await res.json();
 
         localStorage.setItem("dungeon", JSON.stringify(dungeonData));
@@ -385,9 +384,7 @@ searchF.addEventListener("click", () => {
     const value = input.value.trim();
 
     try{
-      const res = await fetch(
-        'http://localhost:7071/api/search_friend?code='+prefix+value
-      );
+      const res = await fetch(`${API_BASE_URL}/search_friend?code=`+prefix+value);
       if (!res.ok) {
       throw new Error("Amico non trovato");
     }
@@ -469,8 +466,7 @@ function showFriendPanel(friend: Friend, _user: User) {
 
 async function sendFriendRequest(friend: Friend, user: User) {
   try {
-    const res = await fetch(
-      "http://localhost:7071/api/send_request",
+    const res = await fetch(`${API_BASE_URL}/send_request`,
       {
         method: "POST", 
         headers: { "Content-Type": "application/json" },
@@ -503,7 +499,7 @@ async function sendFriendRequest(friend: Friend, user: User) {
 }
 async function acceptFriendRequest(fromUid: string, user: User) {
   try {
-    await fetch("http://localhost:7071/api/accept_request", {
+    await fetch(`${API_BASE_URL}/accept_request`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -533,9 +529,7 @@ chanllengeD.addEventListener("click", ()=>{
   document.getElementById("confirmRoom")?.addEventListener("click", async () => {
     const code = (document.getElementById("roomCode") as HTMLInputElement).value;
     const dungCode="STO-"+code
-    const response = await fetch(
-      "http://localhost:7071/api/retrive_dungeon?code="+dungCode
-    );
+    const response = await fetch(`${API_BASE_URL}/retrive_dungeon?code=`+dungCode);
 
     const dungeon = await response.json();
     const activeUser = currentUser();
@@ -646,7 +640,7 @@ changeC.addEventListener("click", () => {
 async function updateClass(selectedClass: string, UserId: string){
   try {
     const res = await fetch(
-      `http://localhost:7071/api/class`,
+      `${API_BASE_URL}/class`,
       {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },

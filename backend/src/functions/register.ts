@@ -1,7 +1,7 @@
-import { getMongoClient } from "../db/mongo";
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import crypto from "crypto";
 import { User } from "../types/types";
+import { getMongoClient } from "../db/mongo";
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 
 interface RegisterRequest {
   uid: string;
@@ -11,75 +11,55 @@ interface RegisterRequest {
   classe: string;
 }
 
+export async function registerHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+    try {
+        const body = await req.json() as RegisterRequest;
+        const { uid, username, password, profileImage, classe } = body;
+
+        if (!uid || !username || !password || !classe) {
+            return { status: 400, jsonBody: { error: "Parametri mancanti" } };
+        }
+
+        const passwordHash = crypto
+            .createHash("sha256")
+            .update(password)
+            .digest("hex");
+
+        const client = await getMongoClient();
+        const db = client.db("stormbyte-db");
+        const users = db.collection<User>("users");
+
+        const exists = await users.findOne({ username });
+        if (exists) {
+            return { status: 409, jsonBody: { error: "Username già esistente" } };
+        }
+
+        const userDoc: User = {
+            uid,
+            username,
+            passwordHash,
+            classe,
+            profileImage: profileImage || "",
+            friends: [],
+            dungeons: [],
+            inventory: [],
+        };
+        
+        await users.insertOne(userDoc);
+
+        return {
+            status: 201,
+            jsonBody: userDoc
+        };
+
+    } catch (error) {
+        context.log("Errore durante la registrazione:", error);
+        return { status: 500, jsonBody: { error: "Errore interno del server" } };
+    }
+}
+
 app.http("register", {
-  methods: ["POST", "OPTIONS"],
-  authLevel: "anonymous",
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-
-    if (req.method === "OPTIONS") {
-      return {
-        status: 204,
-        headers: corsHeaders()
-      };
-    }
-    let body: RegisterRequest;
-    body = await req.json() as RegisterRequest;
-
-    const { uid, username, password, profileImage, classe} = body;
-
-    const passwordHash = crypto
-      .createHash("sha256")
-      .update(password)
-      .digest("hex");
-
-    const client = await getMongoClient();
-    const db = client.db("stormbyte-db");
-    const users = db.collection("users");
-
-    const exists = await users.findOne({ username });
-    if (exists) {
-      return error(409, "Username già esistente");
-    }
-
-    const userDoc: User = {
-      uid,
-      username,
-      passwordHash,
-      classe,
-      profileImage: profileImage || "",
-      friends: [],
-      dungeons: [],
-      inventory: [],
-    };
-    const result = await users.insertOne(userDoc);
-    
-    return {
-      status: 201,
-      headers: {
-        ...corsHeaders(),
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(userDoc)
-    };
-  }
+    methods: ["POST"],
+    authLevel: "anonymous",
+    handler: registerHandler
 });
-
-function corsHeaders() {
-  return {
-    "Access-Control-Allow-Origin": "http://localhost:5173",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type"
-  };
-}
-
-function error(status: number, message: string): HttpResponseInit {
-  return {
-    status,
-    headers: {
-      ...corsHeaders(),
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ error: message })
-  };
-}
-

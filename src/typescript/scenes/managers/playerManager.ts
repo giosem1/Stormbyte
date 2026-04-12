@@ -1,9 +1,10 @@
 import Phaser from "phaser";
 import GameScene from "../gamescene";
 import GenericPanel from "../../../ui/pannel";
-import { SCALE_RULES, WALL_THICKNESS, DOOR_WIDTH } from "./dungeonManager";
 import { createKnightAnimations } from "../animation";
+import { SCALE_RULES, WALL_THICKNESS, DOOR_WIDTH } from "./dungeonManager";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 export class PlayerManager {
     private scene: GameScene;
 
@@ -133,7 +134,7 @@ export class PlayerManager {
       private damageEnemy(enemy: Phaser.GameObjects.Sprite) {
         const enemyId = enemy.getData("enemyId");
     
-        fetch("http://localhost:7071/api/update_game_lobby", {
+        fetch(`${API_BASE_URL}/update_game_lobby`, {
           method:"POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -314,7 +315,7 @@ export class PlayerManager {
     
         this.scene.hero.setTexture(this.scene.userClass+"Death");
         this.scene.hero.play("death" + this.scene.userClass, true);
-        fetch("http://localhost:7071/api/update_game_lobby", {
+        fetch(`${API_BASE_URL}/update_game_lobby`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({

@@ -1,5 +1,4 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext, output } from "@azure/functions";
-import { group } from "console";
 
 const signalROutput = output.generic({
     type: 'signalR',
@@ -8,45 +7,52 @@ const signalROutput = output.generic({
     connectionStringSettings: 'AzureSignalRConnectionString'
 });
 
-app.http('sync_player_move', {
-    methods: ['POST'],
-    authLevel: 'anonymous',
-    extraOutputs: [signalROutput],
-    handler: async (request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-        try {
-            const body = await request.json() as any;
-            const { dungeonCode, lobbyId, data } = body;
-            
-            if (!dungeonCode || !data) {
-                return {
-                    status: 400,
-                    body: "Missing data"
-                };
-            }
+interface PlayerMoveData {
+    dungeonCode: string;
+    lobbyId?: string;
+    data: any;
+}
 
-            const tagretGroup = lobbyId || dungeonCode; 
-
-            const siganlRMessage = {
-                target: 'PlayerMoved',
-                groupName: tagretGroup,
-                arguments: [data]
-            }
-
-            context.extraOutputs.set( signalROutput, [siganlRMessage]);
-
+export async function syncPlayerMoveHandler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+    try {
+        const body = await request.json() as PlayerMoveData;
+        const { dungeonCode, lobbyId, data } = body;
+        
+        if (!dungeonCode || !data) {
             return {
-                status: 200, 
-                jsonBody: {
-                    success: true
-                }
-            };
-
-        }catch (err) {
-            context.error("Error in sync_player_move: ", err);
-            return {
-                status: 500,
-                body: "Internal server error"
+                status: 400,
+                jsonBody: { error: "Missing data" }
             };
         }
+
+        const targetGroup = lobbyId || dungeonCode; 
+
+        const signalRMessage = {
+            target: 'PlayerMoved',
+            groupName: targetGroup,
+            arguments: [data]
+        };
+
+        context.extraOutputs.set(signalROutput, [signalRMessage]);
+
+        return {
+            status: 200, 
+            jsonBody: { success: true }
+        };
+
+    } catch (err) {
+        context.error("Error in sync_player_move: ", err);
+        return {
+            status: 500,
+            jsonBody: { error: "Internal server error" }
+        };
     }
-})
+}
+
+app.http('syncPlayerMove', {
+    methods: ['POST'],
+    authLevel: 'anonymous',
+    route: "sync_player_move",
+    extraOutputs: [signalROutput],
+    handler: syncPlayerMoveHandler
+});

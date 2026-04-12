@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import GameScene from "../gamescene";
 import { ENEMY_CONFIG, TRAP_CONFIG, type ItemType } from "../../../types/types";
 
-
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 export const SCALE_RULES: Record<ItemType, number> = {
   room: 1.2,
   enemy: 1,
@@ -214,7 +214,7 @@ export class DungeonManager {
 
       }
   
-      fetch("http://localhost:7071/api/update_game_lobby", {
+      fetch(`${API_BASE_URL}/update_game_lobby`, {
         method:"POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -260,7 +260,7 @@ export class DungeonManager {
         
         this.scene.stroyManager.logEvent("TRAP_TRIGGERED", `A fatal misstep! Triggered a hidden trap.`, this.scene.user.username);
         trap.play(config.anim);
-        fetch("http://localhost:7071/api/update_game_lobby", {
+        fetch(`${API_BASE_URL}/update_game_lobby`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

@@ -1,13 +1,13 @@
-import * as signalR from "@microsoft/signalr";
 import type { User } from "../types/types";
+import * as signalR from "@microsoft/signalr";
 
 export let connection: signalR.HubConnection;
 export let currentUserId: string = "";
-
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 export function createConnection(user: User) {
     currentUserId = user.uid
     connection = new signalR.HubConnectionBuilder()
-        .withUrl("http://localhost:7071/api", {
+        .withUrl(`${API_BASE_URL}`, {
             withCredentials: true,
             headers: { "X-User-Id": user.uid }
         })
@@ -132,7 +132,7 @@ export function onNameChanged(callback: (payload: any) => void) {
 export async function broadcastRealTimeMove(dungeonCode: string, payload: any) {
     if (connection && connection.state === "Connected"){
         try{
-            await fetch("http://localhost:7071/api/sync_move", {
+            await fetch(`${API_BASE_URL}/sync_move`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

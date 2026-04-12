@@ -2,9 +2,10 @@ import Phaser from "phaser";
 import GenericPanel from "./pannel";
 import GameScene from "../typescript/scenes/gamescene";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 export class GameUIManager {
     private scene: GameScene;
-
+    
     constructor(scene: GameScene){
         this.scene = scene;
     }
@@ -94,7 +95,7 @@ export class GameUIManager {
     if (!this.scene.isGuest) {
       const promptData = this.scene.stroyManager.generateChroniclePrompt();
       try {
-        const response = await fetch("http://localhost:7071/api/generate_story", {
+        const response = await fetch(`${API_BASE_URL}/generate_story`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -303,7 +304,7 @@ export class GameUIManager {
     exitButton.on("pointerdown", async () => {
       exitButton.disableInteractive();
       try {
-        await fetch("http://localhost:7071/api/leave_game", {
+        await fetch(`${API_BASE_URL}/leave_game`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -375,7 +376,7 @@ export class GameUIManager {
               const friendToInvite = friendsList[index];
 
               try {
-                await fetch("http://localhost:7071/api/invite_game", {
+                await fetch(`${API_BASE_URL}/invite_game`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
