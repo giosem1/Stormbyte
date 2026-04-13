@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { Torch } from "./scenes/torch";
 import GenericPanel from "../ui/pannel";
-import { createConnection, startConnection } from "../utils/signalrClient";
+import { createConnection, onGlobalChatMessage, startConnection } from "../utils/signalrClient";
 import { PREVIEW_CONFIG, mountPreview, unmountPreview } from "./previewanimation"; 
 import { PREVIEW_TO_CLASS, type Friend, type PlayerClass, type User } from "../types/types";
 import { clearSession, getSession, setSession, isAuthenticated, requireUser } from "../utils/session";
@@ -356,54 +356,88 @@ createD.addEventListener("click", ()=>{
 
 
 // Search Friend
-searchF.addEventListener("click", () => {
+searchF.addEventListener("click", (e) => {
+  e.stopPropagation();
 
-  if (searchF.querySelector(".search-wrapper")) {
+  const existingWrapper = searchF.querySelector(".search-wrapper");
+  const existingError = searchF.querySelector(".search-error-msg");
+  if (existingWrapper) {
+    existingWrapper.remove();
+    if (existingError) existingError.remove();
     return;
   }
 
   searchF.style.display = "inline-flex";
   searchF.style.alignItems = "center";
+  searchF.style.position = "relative";
 
   const wrapper = document.createElement("div");
-  wrapper.className = "search-wrapper small";
+  wrapper.className = "search-wrapper small flex items-center";
+  
+  wrapper.addEventListener("click", (ev) => ev.stopPropagation());
 
   const input = document.createElement("input");
   input.type = "text";
-  input.placeholder = "Code";
-  input.autocomplete ="off";
+  input.placeholder = "Digits only (e.g. 1234)";
+  input.autocomplete = "off";
+  input.className = "bg-gray-800 text-white px-2 py-2 rounded border border-gray-600 outline-none focus:border-yellow-400 text-[10px] ml-2";
+  input.style.fontFamily = "'Press Start 2P', cursive";
 
   const icon = document.createElement("img");
-  icon.className = "icon";
+  icon.className = "icon cursor-pointer ml-2 w-5 h-5 transition-transform hover:scale-110";
   icon.src = "../../public/assets/icons/search.png";
-  icon.alt = "Cerca";
+  icon.alt = "Search";
   icon.draggable = false;
+
+  const errorText = document.createElement("span");
+  errorText.className = "search-error-msg absolute top-full left-0 mt-2 text-red-500 text-[8px] hidden whitespace-nowrap bg-black/90 px-3 py-2 rounded border border-red-800 z-50";
+  errorText.style.fontFamily = "'Press Start 2P', cursive";
+
+  const showError = (msg: string) => {
+    errorText.innerText = msg;
+    errorText.classList.remove("hidden");
+    
+    setTimeout(() => {
+        if (errorText) errorText.classList.add("hidden");
+    }, 3000);
+  };
 
   const doSearch = async () => {
     const prefix = "SRBU";
     const value = input.value.trim();
 
-    try{
-      const res = await fetch(`${API_BASE_URL}/search_friend?code=`+prefix+value);
+    if (!value) {
+        showError("Please enter a code!");
+        return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/search_friend?code=` + prefix + value);
+      
       if (!res.ok) {
-      throw new Error("Amico non trovato");
-    }
+        throw new Error("Friend not found");
+      }
 
-    const friend = await res.json();
-    showFriendPanel(friend, currentUser());
+      const friend = await res.json();
+      showFriendPanel(friend, currentUser());
+      
+      wrapper.remove();
+      errorText.remove();
 
-    } catch(err) {
-    console.error(err);
-    alert("Utente non trovato");
+    } catch (err) {
+      console.error(err);
+      showError("User not found!");
     }
-    
   };
   
   icon.addEventListener("click", doSearch);
 
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
+  input.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") {
       doSearch();
+    } else if (ev.key === "Escape") {
+      wrapper.remove();
+      errorText.remove();
     }
   });
   input.addEventListener("input", () => {
@@ -414,8 +448,19 @@ searchF.addEventListener("click", () => {
   wrapper.appendChild(icon);
 
   searchF.appendChild(wrapper);
+  searchF.appendChild(errorText);
 
   input.focus();
+
+  const closeOnOutsideClick = () => {
+    if (wrapper.parentNode) {
+        wrapper.remove();
+        if (errorText.parentNode) errorText.remove();
+    }
+    document.removeEventListener("click", closeOnOutsideClick);
+  };
+
+  document.addEventListener("click", closeOnOutsideClick);
 });
 
 function showFriendPanel(friend: Friend, _user: User) {
@@ -515,39 +560,65 @@ async function acceptFriendRequest(fromUid: string, user: User) {
 
 
 // Chanllenge Dungeon
-chanllengeD.addEventListener("click", ()=>{
+chanllengeD.addEventListener("click", () => {
   panel.show(`
     <h2 class="panel-title text-lg mb-6">Join Chamber</h2>
 
-    <input id="roomCode" type="text" placeholder="ENTER CODE" autocomplete="off"/>
+    <input id="roomCode" type="text" placeholder="Digits only (e.g. 1234)" autocomplete="off" class="w-full bg-gray-800 text-white px-3 py-3 rounded border border-gray-600 outline-none focus:border-yellow-400 mb-2 text-[12px]" style="font-family: 'Press Start 2P', cursive;"/>
+    
+    <p id="roomCodeError" class="text-red-500 text-[10px] hidden mb-4 text-center leading-loose" style="font-family: 'Press Start 2P', cursive;"></p>
 
-    <button id="confirmRoom" class="panel-btn"> CONFIRM </button>
-
-    <button id="randomRoom" class="panel-btn"> RANDOM ROOM </button>
+    <button id="confirmRoom" class="panel-btn mt-2 w-full"> CONFIRM </button>
   `);
 
   document.getElementById("confirmRoom")?.addEventListener("click", async () => {
-    const code = (document.getElementById("roomCode") as HTMLInputElement).value;
-    const dungCode="STO-"+code
-    const response = await fetch(`${API_BASE_URL}/retrive_dungeon?code=`+dungCode);
+    const inputElement = document.getElementById("roomCode") as HTMLInputElement;
+    const errorElement = document.getElementById("roomCodeError") as HTMLParagraphElement;
+    const code = inputElement.value.trim();
+    errorElement.classList.add("hidden");
+    errorElement.innerText = "";
 
-    const dungeon = await response.json();
-    const activeUser = currentUser();
-    const uniqueLobbyId = `${dungCode}_${activeUser.username}`;
+    if (!code) {
+        errorElement.innerText = "Please enter a code!";
+        errorElement.classList.remove("hidden");
+        return;
+    }
 
-    localStorage.setItem("current_game_dungeon", dungCode);
-    localStorage.setItem("current_lobby_id", uniqueLobbyId);
-    localStorage.setItem("is_game_guest", "false");
-    localStorage.setItem("user", JSON.stringify(activeUser));
-    localStorage.setItem("dungeon", JSON.stringify(dungeon));
-    window.location.href = "dungeonGame.html";
+    if (!/^\d+$/.test(code)) {
+        errorElement.innerText = "Only numbers are allowed!";
+        errorElement.classList.remove("hidden");
+        return;
+    }
 
+    try {
+        const dungCode = "STO-" + code;
+        const response = await fetch(`${API_BASE_URL}/retrive_dungeon?code=` + dungCode);
+
+        if (!response.ok) {
+            errorElement.innerText = "Dungeon not found!";
+            errorElement.classList.remove("hidden");
+            return;
+        }
+
+        const dungeon = await response.json();
+        const activeUser = currentUser();
+        const uniqueLobbyId = `${dungCode}_${activeUser.username}`;
+
+        localStorage.setItem("current_game_dungeon", dungCode);
+        localStorage.setItem("current_lobby_id", uniqueLobbyId);
+        localStorage.setItem("is_game_guest", "false");
+        localStorage.setItem("user", JSON.stringify(activeUser));
+        localStorage.setItem("dungeon", JSON.stringify(dungeon));
+        
+        window.location.href = "dungeonGame.html";
+
+    } catch (error) {
+        console.error(error);
+        errorElement.innerText = "Connection error!";
+        errorElement.classList.remove("hidden");
+    }
   });
-
-  document.getElementById("randomRoom")?.addEventListener("click", () => {
-    window.location.href = "dungeonGame.html";
-  });
-})
+});
 
 // Change Class
 changeC.addEventListener("click", () => {
@@ -877,3 +948,172 @@ exitD.addEventListener("click", ()=>{
     window.location.href = "login.html";
 
 });
+
+//Homepage Chat
+function setupGlobalChat() {
+    const messagesContainer = document.getElementById("messages") as HTMLDivElement;
+    const chatBox = document.getElementById("chat-box") as HTMLDivElement;
+    const chatToggleBtn = document.getElementById("chat-toggle-btn") as HTMLDivElement;
+    const chatBadge = document.getElementById("chat-badge") as HTMLSpanElement;
+    const chatControls = document.getElementById("chat-controls") as HTMLDivElement;
+
+    if (!messagesContainer || !chatControls) return;
+
+    messagesContainer.innerHTML = "";
+    fetch(`${API_BASE_URL}/global_chat_history`)
+    .then(res => res.json())
+    .then(history => {
+        history.forEach((data: any) => {
+            appendMessageToChat(data, true);
+        });
+    }).catch(err => console.error("Error loading chat history:", err));
+
+    function appendMessageToChat(data: any, isHistory: boolean = false) {
+        const msgElement = document.createElement("p");
+        const sender = data.username || "Unknown";
+        const texMsg = data.text || "";
+        const isMyMessage = sender === currentUser().username;
+        
+        const senderColor = isMyMessage ? "text-green-400" : "text-yellow-400";
+        
+        msgElement.innerHTML = `<strong class="${senderColor} text-[14px]">${sender}:</strong> <span class="text-gray-300 text-[12px] break-words" style="line-height: 1.4;">${texMsg}</span>`;
+        msgElement.classList.add("mb-2");
+        
+        messagesContainer.appendChild(msgElement);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        if (!isHistory && chatBox.classList.contains("hidden") && !isMyMessage) {
+            unreadCount++;
+            if (chatBadge) {
+                chatBadge.innerText = unreadCount > 99 ? "99+" : unreadCount.toString();
+                chatBadge.classList.remove("hidden");
+                chatBadge.classList.add("flex");
+            }
+        }
+    }
+    
+    let unreadCount = 0;
+
+    const sendMessage = (text: string) => {
+        const activeUser = currentUser();
+        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+        fetch(`${API_BASE_URL}/send_global_chat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                userId: activeUser.uid,
+                username: activeUser.username,
+                text: text
+            })
+        }).catch(err => console.error(err));
+    };
+
+    const renderMainMenu = () => {
+        chatControls.innerHTML = `
+            <div class="flex gap-2">
+                <button id="chat-share-uid" class="w-1/2 p-2 bg-blue-800 hover:bg-blue-700 text-white text-[18px] rounded transition-colors" style="font-family: 'Press Start 2P', cursive;">Share UID</button>
+                <button id="chat-share-dungeon" class="w-1/2 p-2 bg-green-800 hover:bg-green-700 text-white text-[18px] rounded transition-colors" style="font-family: 'Press Start 2P', cursive;">Share Dungeon</button>
+            </div>
+        `;
+        document.getElementById("chat-share-uid")?.addEventListener("click", renderUidOptions);
+        document.getElementById("chat-share-dungeon")?.addEventListener("click", renderDungeonList);
+    };
+
+    const renderUidOptions = () => {
+        const activeUser = currentUser();
+        const fullUid = `${activeUser.uid}`;
+        const messages = [
+            `Add me! My UID: ${fullUid}`,
+            `Looking for party! Code: ${fullUid}`
+        ];
+        renderMessageOptions(messages, renderMainMenu);
+    };
+
+    const renderDungeonList = () => {
+        const activeUser = currentUser();
+        const dungeons = activeUser.dungeons || [];
+
+        if (dungeons.length === 0) {
+            chatControls.innerHTML = `
+                <div class="text-center text-red-400 text-[12px] mb-2 leading-loose" style="font-family: 'Press Start 2P', cursive;">No dungeons!</div>
+                <button id="chat-back" class="w-full p-2 bg-gray-600 hover:bg-gray-500 text-white text-[12px] rounded" style="font-family: 'Press Start 2P', cursive;">Back</button>
+            `;
+            document.getElementById("chat-back")?.addEventListener("click", renderMainMenu);
+            return;
+        }
+
+        const btns = dungeons.map((d, i) => `
+            <button class="dungeon-select-btn block w-full p-2 mb-1 bg-gray-700 hover:bg-gray-600 text-left text-white text-[12px] rounded" data-index="${i}" style="font-family: 'Press Start 2P', cursive;">
+                ${d.name} <span class="text-yellow-400 float-right">${d.code}</span>
+            </button>
+        `).join("");
+
+        chatControls.innerHTML = `
+            <div class="max-h-20 overflow-y-auto mb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                ${btns}
+            </div>
+            <button id="chat-back" class="w-full p-2 bg-red-800 hover:bg-red-700 text-white text-[12px] rounded" style="font-family: 'Press Start 2P', cursive;">Back</button>
+        `;
+
+        document.getElementById("chat-back")?.addEventListener("click", renderMainMenu);
+        document.querySelectorAll(".dungeon-select-btn").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                const idx = parseInt((e.currentTarget as HTMLElement).dataset.index!);
+                renderDungeonOptions(dungeons[idx].code);
+            });
+        });
+    };
+
+    const renderDungeonOptions = (code: string) => {
+        const messages = [
+            `Challenge my dungeon: ${code}`,
+            `New deadly room! Code: ${code}`
+        ];
+        renderMessageOptions(messages, renderDungeonList);
+    };
+
+    const renderMessageOptions = (messages: string[], backCallback: () => void) => {
+        const btns = messages.map((m, i) => `
+            <button class="msg-send-btn block w-full p-2 mb-1 bg-gray-700 hover:bg-gray-600 text-left text-white text-[12px] rounded" data-index="${i}" style="font-family: 'Press Start 2P', cursive; line-height: 1.6;">
+                ${m}
+            </button>
+        `).join("");
+
+        chatControls.innerHTML = `
+            <div class="max-h-20 overflow-y-auto mb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                ${btns}
+            </div>
+            <button id="chat-back" class="w-full p-2 bg-red-800 hover:bg-red-700 text-white text-[12px] rounded transition-colors" style="font-family: 'Press Start 2P', cursive;">Back</button>
+        `;
+
+        document.getElementById("chat-back")?.addEventListener("click", backCallback);
+        document.querySelectorAll(".msg-send-btn").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                const idx = parseInt((e.currentTarget as HTMLElement).dataset.index!);
+                sendMessage(messages[idx]);
+                renderMainMenu();          
+            });
+        });
+    };
+
+    renderMainMenu();    
+    if(chatToggleBtn) {
+        chatToggleBtn.addEventListener("click", () => {
+            chatBox.classList.toggle("hidden");
+    
+            if (!chatBox.classList.contains("hidden")) {
+                unreadCount = 0;
+                if(chatBadge) {
+                    chatBadge.classList.add("hidden");
+                    chatBadge.innerText = "0";
+                }
+            }
+        });
+    }
+
+    onGlobalChatMessage((data: any) => {
+      appendMessageToChat(data);
+    });
+}
+setupGlobalChat();

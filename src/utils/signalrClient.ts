@@ -150,3 +150,7 @@ export async function broadcastRealTimeMove(dungeonCode: string, payload: any) {
 export function onChatMessage(callback: (data: any)=> void){
     connection.on("ChatMessage", callback);
 }
+
+export function onGlobalChatMessage(callback: (data: any) => void) {
+    connection.on("GlobalChatMessage", callback);
+}
