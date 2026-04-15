@@ -36,11 +36,11 @@ Stormbyte follows a **Cloud-Native** approach, utilizing managed services to ens
 ## 🎮 Gameplay Features & Interface
 The dashboard (as seen in the screenshots) reflects a deep focus on atmosphere and immersion.
 
-![Gameplay Screenshot](https://img.shields.io/badge/Gameplay_Preview-Coming_Soon-yellow?style=for-the-badge)
+![Gameplay Screenshot](public/assets/dungeongamepreview.jpg)
 
 *The Fog of War and Dynamic Lighting systems are rendered via Phaser.js, utilizing hardware acceleration for a smooth experience.*
 
-![Dungeon Editor Screenshot](https://img.shields.io/badge/Editor_Preview-Coming_Soon-yellow?style=for-the-badge)
+![Dungeon Editor Screenshot](public/assets/createdungeonpreview.jpg)
 
 *The Editor allows for real-time creation, instantly syncing every wall and trap to the Azure Cloud.*
 
