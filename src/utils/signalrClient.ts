@@ -125,6 +125,10 @@ export function onRoomDeleted(callback: (roomId: string) => void) {
     connection.on("RoomDeleted", callback);
 }
 
+export function onDungeonSaved(callback: () => void) {
+    connection.on("DungeonSaved", callback);
+}
+
 export function onNameChanged(callback: (payload: any) => void) {
     connection.on("NAME_CHANGED", callback);
 }

@@ -67,6 +67,12 @@ export async function dungeonEventHandler(req: HttpRequest, context: InvocationC
                     changedBy: userId
                 }]
             });
+        } else if (type === "DUNGEON_SAVED") {
+            signalRMessages.push({
+                target: "DungeonSaved",
+                groupName: dungeonCode,
+                arguments: []
+            });
         }
 
         context.extraOutputs.set("signalRMessages", signalRMessages);

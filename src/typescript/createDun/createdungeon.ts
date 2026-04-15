@@ -4,8 +4,8 @@ import GenericPanel from "../../ui/pannel";
 import type { User } from "../../types/types";
 import { buildDungeonSave } from "./savedungeon";
 import { getSession } from "../../utils/session";
-import { enableDrag, setSendDungeonEvent, setSendRealTimeEvent ,loadItemsFromStorage, spawnDefaultRoom } from "./positioning";
-import { createConnection, startConnection, onRoomMoved, onChatMessage, broadcastRealTimeMove, onNameChanged} from "../../utils/signalrClient";
+import { enableDrag, setSendDungeonEvent, setSendRealTimeEvent, loadItemsFromStorage, spawnDefaultRoom } from "./positioning";
+import { createConnection, startConnection, onRoomMoved, onChatMessage, broadcastRealTimeMove, onNameChanged, onDungeonSaved } from "../../utils/signalrClient";
 
 type MenuCategory = "rooms" | "enemies" | "traps";
 export let isRemoteUpdate = false;
@@ -86,7 +86,11 @@ export function initDungeonEditor() {
     const user = currentUser();
     createConnection(user);
     await startConnection();
-    
+
+    onDungeonSaved(() => {
+      showCompletionPanel();
+    });
+
     onNameChanged((payload) => {
       const nameInput = document.getElementById("dungeon-name-input") as HTMLInputElement;
       if (nameInput && nameInput.value !== payload.name){
@@ -154,8 +158,6 @@ export function initDungeonEditor() {
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     });
   }
-
-
 
   function appendRoomToCanvas(item: any) {
     const canvas = document.getElementById("infinite-canvas") as HTMLDivElement;
@@ -300,28 +302,47 @@ export function initDungeonEditor() {
     const lobbyData = await joinResponse.json();
     const isOwner = lobbyData.ownerId === currentUser().uid;
 
-    const saveBtn = document.getElementById("save");
-    const inviteBtn = document.getElementById("sent-label");
-    const nameInput = document.getElementById("dungeon-name-input") as HTMLInputElement;
+    if (!isOwner) {
+      if (save) save.style.display = "none";
+      if (inviteLabel) inviteLabel.style.display = "none";
 
-    if (!isOwner){
-      if (saveBtn) saveBtn.style.display = "none";
-      if (inviteBtn) inviteBtn.style.display = "none";
-
-      if (nameInput){
+      if (nameInput) {
         nameInput.disabled = true;
         nameInput.classList.add("opacity-50", "cursor-not-allowed");
       }
     } else {
       nameInput.addEventListener("input", (e) => {
         const newName = (e.target as HTMLInputElement).value;
-        console.log("🔵 [Owner] Inviando nuovo nome:", newName);
-        sendDungeonEvent("NAME_CHANGED", { name: newName})
+        sendDungeonEvent("NAME_CHANGED", { name: newName });
       });
+
+      if (save) {
+        save.addEventListener("click", () => {
+          const existingError = document.getElementById("name-error");
+          if (existingError) existingError.remove();
+
+          if (!nameInput.value.trim()) {
+            const error = document.createElement("p");
+            error.id = "name-error";
+            error.textContent = "Inserisci il nome del dungeon";
+            error.style.color = "#ffd700";
+            error.style.fontSize = "0.5rem";
+            error.style.marginTop = "6px";
+            nameInput.parentElement!.appendChild(error);
+            return;
+          }
+
+          buildDungeonSave(currentUser().uid, invitedFriends);
+
+          sendDungeonEvent("DUNGEON_SAVED", {});
+          showCompletionPanel();
+        });
+      }
     }
+
     await registerRealtimeListeners();
 
-    if (lobbyData.state && lobbyData.state.item && lobbyData.state.items.length > 0){
+    if (lobbyData.state && lobbyData.state.item && lobbyData.state.items.length > 0) {
       const canvas = document.getElementById("infinite-canvas");
       if (canvas) canvas.innerHTML = "";
       state.items = [];
@@ -333,8 +354,8 @@ export function initDungeonEditor() {
       const savedItems = loadItemsFromStorage();
       if (savedItems.length === 0) {
         spawnDefaultRoom()
-      }else {
-        const canvas = document.getElementById("inifnite-canvas");
+      } else {
+        const canvas = document.getElementById("infinite-canvas");
         if (canvas) canvas.innerHTML = "";
         state.items = [];
 
@@ -353,7 +374,7 @@ export function initDungeonEditor() {
       });
       if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
-    
+
     setupInvitePanel();
     setupChat();
     renderItems("rooms");
@@ -366,25 +387,7 @@ export function initDungeonEditor() {
       });
     });
 
-    back.addEventListener("click", () => window.location.href = "homepage.html");
-
-    save.addEventListener("click", () => {
-      const existingError = document.getElementById("name-error");
-      if (existingError) existingError.remove();
-
-      if (!nameInput.value.trim()) {
-        const error = document.createElement("p");
-        error.id = "name-error";
-        error.textContent = "Inserisci il nome del dungeon";
-        error.style.color = "#ffd700";
-        error.style.fontSize = "0.5rem";
-        error.style.marginTop = "6px";
-        nameInput.parentElement!.appendChild(error);
-        return;
-      }
-
-      buildDungeonSave(currentUser().uid, invitedFriends);
-    });
+    if (back) back.addEventListener("click", () => window.location.href = "homepage.html");
   });
 
   function setupChat() {
@@ -413,5 +416,34 @@ export function initDungeonEditor() {
       if (e.key === "Enter") sendMessage()
     })
   }
-  
+}
+
+// Spostata fuori affinché sia accessibile ovunque
+function showCompletionPanel() {
+  if (document.getElementById("completion-panel")) return;
+
+  const panel = document.createElement("div");
+  panel.id = "completion-panel";
+  panel.className = "fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4 backdrop-blur-sm";
+
+  panel.innerHTML = `
+      <div class="relative bg-gradient-to-b from-gray-800 to-gray-900 border-4 border-yellow-400 p-8 rounded-lg text-center max-w-md w-full shadow-[0_0_30px_rgba(250,204,21,0.3)]" style="font-family: 'Press Start 2P', cursive;">
+        <div class="absolute inset-2 border-2 border-dashed border-gray-600 opacity-30 pointer-events-none"></div>
+        <h2 class="relative text-green-400 text-[24px] mb-6 leading-relaxed drop-shadow-[0_0_10px_rgba(74,222,128,0.8)] animate-pulse z-10">
+            SUCCESS!
+        </h2>
+        <p class="relative text-gray-100 text-[14px] mb-10 leading-loose drop-shadow-md z-10">
+            Dungeon successfully saved and synchronized.
+        </p>
+        <button id="return-home-btn" class="relative z-10 w-full py-4 bg-blue-600 hover:bg-blue-500 text-white text-[16px] rounded transition-all duration-150 shadow-[0_6px_0_rgb(30,58,138)] hover:shadow-[0_3px_0_rgb(30,58,138)] hover:translate-y-[3px] active:shadow-[0_0px_0_rgb(30,58,138)] active:translate-y-[6px]">
+            RETURN HOME
+        </button>
+    </div>
+  `;
+
+  document.body.appendChild(panel);
+
+  document.getElementById("return-home-btn")?.addEventListener("click", () => {
+    window.location.href = "homepage.html";
+  });
 }
