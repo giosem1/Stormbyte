@@ -105,11 +105,26 @@ export function initDungeonEditor() {
       ) as HTMLElement;
       if (!el) {
         const AZURE_BASE_URL = "https://stormbyte.blob.core.windows.net/stormbyte-assets/";
+        const itemSrc = data.src ?? data.asset ?? AZURE_BASE_URL + "rooms/sacrificeroom.png";
 
+        let itemName = data.name;
+        if (!itemName && itemSrc) {
+            const fileName = itemSrc.split("/").pop() || "Unknown";
+            const nameWithoutExt = fileName.split(".")[0];
+            itemName = nameWithoutExt.charAt(0).toUpperCase() + nameWithoutExt.slice(1);
+        }
+        let itemType = data.type;
+        if (!itemType && itemSrc) {
+            if (itemSrc.includes("traps/")) itemType = "traps";
+            else if (itemSrc.includes("enemis/")) itemType = "enemies";
+            else itemType = "rooms";
+        }
         const newItem = data.fullItem ?? {
           id: data.roomId,
-          src: data.src ?? AZURE_BASE_URL + "rooms/sacrificeroom.png",
-          type: data.type,
+          src: itemSrc,
+          asset: data.asset ?? itemSrc,
+          name: itemName,
+          type: itemType,
           x: data.x,
           y: data.y,  
           width: data.width,
@@ -418,7 +433,6 @@ export function initDungeonEditor() {
   }
 }
 
-// Spostata fuori affinché sia accessibile ovunque
 function showCompletionPanel() {
   if (document.getElementById("completion-panel")) return;
 
@@ -444,6 +458,8 @@ function showCompletionPanel() {
   document.body.appendChild(panel);
 
   document.getElementById("return-home-btn")?.addEventListener("click", () => {
+    localStorage.removeItem("dungeonCode");
+    localStorage.removeItem("canvas-items");
     window.location.href = "homepage.html";
   });
 }
