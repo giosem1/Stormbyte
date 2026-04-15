@@ -1,6 +1,6 @@
 # 🏰 Stormbyte: The Cloud-Forge of Infinite Dungeons
 
-![Stormbyte Home Screen](public/assets/homepagepreview.jpg)
+![Stormbyte Home Screen](public/assets/homepagepreview.png)
 *The gateway to Stormbyte: where retro aesthetics meet modern cloud power.*
 
 ## 📜 Vision & Core Concept
@@ -17,7 +17,7 @@ The core mission was to move beyond the limitations of "stand-alone" software. B
 ## 🏗️ Technical Architecture & Azure Integration
 Stormbyte follows a **Cloud-Native** approach, utilizing managed services to ensure high availability, security, and effortless scaling.
 
-![Architecture Diagram](https://img.shields.io/badge/Architecture_Diagram-Coming_Soon-blue?style=for-the-badge&logo=microsoftazure)
+![Architecture Diagram](public/assets/Stormbyte_diagram.png)
 
 
 ### ☁️ Azure Service Stack
